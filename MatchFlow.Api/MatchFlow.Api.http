@@ -1,0 +1,6 @@
+@MatchFlow.Api_HostAddress = http://localhost:5286
+
+GET {{MatchFlow.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

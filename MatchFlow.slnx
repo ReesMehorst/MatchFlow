@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="MatchFlow.Api/MatchFlow.Api.csproj" />
+  <Project Path="MatchFlow.Application/MatchFlow.Application.csproj" />
+  <Project Path="MatchFlow.Domain/MatchFlow.Domain.csproj" />
+  <Project Path="MatchFlow.Infrastructure/MatchFlow.Infrastructure.csproj" />
+  <Project Path="MatchFlow.Tests/MatchFlow.Tests.csproj" />
+</Solution>
