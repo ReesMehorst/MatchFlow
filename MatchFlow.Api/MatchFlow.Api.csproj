@@ -8,6 +8,7 @@
 
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,10 +27,6 @@
   <ItemGroup>
     <ProjectReference Include="..\MatchFlow.Application\MatchFlow.Application.csproj" />
     <ProjectReference Include="..\MatchFlow.Infrastructure\MatchFlow.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>
