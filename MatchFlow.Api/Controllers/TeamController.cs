@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MatchFlow.Infrastructure.DBContext;
 using MatchFlow.Domain.Entities;
+using MatchFlow.Api.Models;
 
 namespace MatchFlow.Api.Controllers;
 
@@ -34,9 +35,17 @@ public class TeamController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Team team)
+    public async Task<IActionResult> Create([FromBody] TeamCreateDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var team = new Team
+        {
+            Name = dto.Name,
+            Tag = dto.Tag,
+            Bio = dto.Bio,
+            LogoUrl = dto.LogoUrl,
+            OwnerUserId = dto.OwnerUserId
+        };
+
         _dbContext.Teams.Add(team);
         await _dbContext.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = team.Id }, team);

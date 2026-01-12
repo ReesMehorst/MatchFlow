@@ -1,4 +1,6 @@
-﻿namespace MatchFlow.Domain.Entities;
+﻿using System.Text.Json.Serialization;
+
+namespace MatchFlow.Domain.Entities;
 
 public sealed class Team
 {
@@ -9,6 +11,6 @@ public sealed class Team
     public string? LogoUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public string OwnerUserId { get; set; } = string.Empty;
-    public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
-    public ICollection<TeamGame> TeamGames { get; set; } = new List<TeamGame>();
+    [JsonIgnore] public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
+    [JsonIgnore] public ICollection<TeamGame> TeamGames { get; set; } = new List<TeamGame>();
 }
