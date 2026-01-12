@@ -27,6 +27,6 @@ public sealed class Fixture
     public string? CreatedByUserId { get; set; }
     public string? Notes { get; set; }
 
-    public ICollection<FixtureTeam> FixtureTeams { get; set; } = new List<FixtureTeam>();
-    public ICollection<FixtureParticipant> Participants { get; set; } = new List<FixtureParticipant>();
+    public ICollection<FixtureTeam> FixtureTeams { get; set; } = [];
+    public ICollection<FixtureParticipant> Participants { get; set; } = [];
 }

@@ -14,18 +14,13 @@ public sealed class MatchFlowDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<Team> Teams => Set<Team>();
-    public DbSet<GameMatch> Matches => Set<GameMatch>();
-
-    // New DbSets
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
     public DbSet<Game> Games => Set<Game>();
     public DbSet<TeamGame> TeamGames => Set<TeamGame>();
     public DbSet<UserGame> UserGames => Set<UserGame>();
-
     public DbSet<Fixture> Fixtures => Set<Fixture>();
     public DbSet<FixtureTeam> FixtureTeams => Set<FixtureTeam>();
     public DbSet<FixtureParticipant> FixtureParticipants => Set<FixtureParticipant>();
-
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
     public DbSet<Comment> Comments => Set<Comment>();
