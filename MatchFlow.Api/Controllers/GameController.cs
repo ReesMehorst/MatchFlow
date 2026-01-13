@@ -39,8 +39,8 @@ public class GameController : ControllerBase
     {
         var game = new Game
         {
-            Name = dto.Name,
-            Genre = dto.Genre,
+            Name    = dto.Name,
+            Genre   = dto.Genre,
             IconUrl = dto.IconUrl
         };
 

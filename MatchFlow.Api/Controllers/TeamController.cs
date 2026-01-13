@@ -39,10 +39,10 @@ public class TeamController : ControllerBase
     {
         var team = new Team
         {
-            Name = dto.Name,
-            Tag = dto.Tag,
-            Bio = dto.Bio,
-            LogoUrl = dto.LogoUrl,
+            Name        = dto.Name,
+            Tag         = dto.Tag,
+            Bio         = dto.Bio,
+            LogoUrl     = dto.LogoUrl,
             OwnerUserId = dto.OwnerUserId
         };
 
