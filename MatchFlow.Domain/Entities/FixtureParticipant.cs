@@ -2,6 +2,7 @@
 
 public sealed class FixtureParticipant
 {
+    public Guid Id { get; set; }
     public Guid FixtureId { get; set; }
     public Fixture? Fixture { get; set; }
 
