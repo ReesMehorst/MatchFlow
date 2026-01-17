@@ -4,6 +4,7 @@ public enum FixtureSide { A = 1, B = 2 }
 
 public sealed class FixtureTeam
 {
+    public Guid Id { get; set; }
     public Guid FixtureId { get; set; }
     public Fixture? Fixture { get; set; }
 
