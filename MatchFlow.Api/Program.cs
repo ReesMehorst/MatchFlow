@@ -26,16 +26,20 @@ IdentityBuilder identityBuilder = builder.Services.AddIdentity<ApplicationUser, 
 
 builder.Services.AddControllers();
 
-// Swagger / OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+// Add CORS to allow Vite dev server
+builder.Services.AddCors(options =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MatchFlow API", Version = "v1" });
-
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
+    options.AddPolicy("AllowLocalDev", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Vite default
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
@@ -43,10 +47,19 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MatchFlow API v1"));
+    app.UseSwaggerUI();
+}
+else
+{
+    // In production serve the built SPA from wwwroot
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+    app.MapFallbackToFile("index.html");
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowLocalDev");
 
 app.UseAuthentication();
 app.UseAuthorization();
