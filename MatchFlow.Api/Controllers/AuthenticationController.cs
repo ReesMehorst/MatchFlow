@@ -66,8 +66,15 @@ public class AuthenticationController : ControllerBase
 
     private async Task<string> GenerateJwtToken(ApplicationUser user)
     {
-        var key = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key not configured");
-        var issuer = _config["Jwt:Issuer"] ?? "";
+        // Try configuration then environment variable fallback, and give a clear error
+        var key = _config["Jwt:Key"] 
+                  ?? Environment.GetEnvironmentVariable("JWT_KEY") 
+                  ?? throw new InvalidOperationException("Jwt:Key not configured. Add Jwt:Key to appsettings or set JWT_KEY environment variable.");
+
+        var issuer = _config["Jwt:Issuer"] 
+                     ?? Environment.GetEnvironmentVariable("JWT_ISSUER") 
+                     ?? "MatchFlow";
+
         var keyBytes = Encoding.UTF8.GetBytes(key);
         var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
 

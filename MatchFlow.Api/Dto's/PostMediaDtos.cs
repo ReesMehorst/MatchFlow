@@ -1,3 +1,4 @@
+using MediaType = MatchFlow.Domain.Entities.MediaType;
 using System;
 
 namespace MatchFlow.Api.Dtos;
@@ -7,7 +8,7 @@ public record PostMediaDto(
     Guid PostId, 
     string Url, 
     string? ThumbnailUrl, 
-    int MediaType, 
+    MediaType MediaType, 
     int? DurationSec, 
     DateTimeOffset CreatedAt
 );
@@ -16,7 +17,7 @@ public record CreatePostMediaDto(
     Guid PostId, 
     string Url, 
     string? ThumbnailUrl, 
-    int MediaType, 
+    MediaType MediaType, 
     int? DurationSec
 );
 

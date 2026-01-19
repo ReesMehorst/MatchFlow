@@ -18,7 +18,7 @@ public class PostLikeController : ControllerBase
     public async Task<ActionResult<IEnumerable<PostLikeDto>>> GetAll()
     {
         var list = await _db.Set<PostLike>()
-            .Select(pl => new PostLikeDto(pl.PostId, pl.UserId, pl.TeamId))
+            .Select(pl => new PostLikeDto(pl.PostId, pl.UserId!, pl.TeamId ?? Guid.Empty))
             .ToListAsync();
         return Ok(list);
     }
@@ -28,7 +28,7 @@ public class PostLikeController : ControllerBase
     {
         var pl = await _db.Set<PostLike>().FindAsync(postId, userId, teamId);
         if (pl is null) return NotFound();
-        return Ok(new PostLikeDto(pl.PostId, pl.UserId, pl.TeamId));
+        return Ok(new PostLikeDto(pl.PostId, pl.UserId!, pl.TeamId ?? Guid.Empty));
     }
 
     [HttpPost]
@@ -42,7 +42,7 @@ public class PostLikeController : ControllerBase
         };
         _db.Set<PostLike>().Add(pl);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(Get), new { postId = pl.PostId, userId = pl.UserId, teamId = pl.TeamId }, new PostLikeDto(pl.PostId, pl.UserId, pl.TeamId));
+        return CreatedAtAction(nameof(Get), new { postId = pl.PostId, userId = pl.UserId, teamId = pl.TeamId }, new PostLikeDto(pl.PostId, pl.UserId!, pl.TeamId ?? Guid.Empty));
     }
 
     [HttpDelete("{postId:guid}/{userId}/{teamId:guid}")]
