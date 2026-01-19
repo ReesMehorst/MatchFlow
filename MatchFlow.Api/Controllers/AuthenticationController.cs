@@ -1,35 +1,32 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using MatchFlow.Api.Dtos;
+using MatchFlow.Infrastructure.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using MatchFlow.Infrastructure.Identity;
-using MatchFlow.Api.Dtos;
 
 namespace MatchFlow.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthenticationController : ControllerBase
+public class AuthenticationController(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    IConfiguration config
+) : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IConfiguration _config;
-
-    public AuthenticationController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration config)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _config = config;
-    }
+    private static readonly string[] UserAlreadyExistsErrors = ["User already exists"];
+    private static readonly string[] InvalidCredentialsErrors = ["Invalid credentials"];
 
     [HttpPost("register")]
     public async Task<ActionResult<AuthResultDto>> Register(RegisterDto dto)
     {
-        var existing = await _userManager.FindByNameAsync(dto.UserName);
-        if (existing != null) return BadRequest(new AuthResultDto(false, null, new[] { "User already exists" }));
+        var existing = await userManager.FindByNameAsync(dto.UserName);
+        if (existing is not null)
+            return BadRequest(new AuthResultDto(false, null, UserAlreadyExistsErrors));
 
         var user = new ApplicationUser
         {
@@ -39,8 +36,13 @@ public class AuthenticationController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        var result = await _userManager.CreateAsync(user, dto.Password);
-        if (!result.Succeeded) return BadRequest(new AuthResultDto(false, null, result.Errors.Select(e => e.Description).ToArray()));
+        var result = await userManager.CreateAsync(user, dto.Password);
+        if (!result.Succeeded)
+            return BadRequest(new AuthResultDto(
+                false,
+                null,
+                result.Errors.Select(e => e.Description).ToArray()
+            ));
 
         var token = await GenerateJwtToken(user);
         return Ok(new AuthResultDto(true, token, Array.Empty<string>()));
@@ -49,16 +51,21 @@ public class AuthenticationController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResultDto>> Login(LoginDto dto)
     {
-        ApplicationUser? user = null;
-        if (dto.UserNameOrEmail.Contains("@"))
-            user = await _userManager.FindByEmailAsync(dto.UserNameOrEmail);
-        else
-            user = await _userManager.FindByNameAsync(dto.UserNameOrEmail);
+        var user = dto.UserNameOrEmail.Contains('@')
+            ? await userManager.FindByEmailAsync(dto.UserNameOrEmail)
+            : await userManager.FindByNameAsync(dto.UserNameOrEmail);
 
-        if (user is null) return Unauthorized(new AuthResultDto(false, null, new[] { "Invalid credentials" }));
+        if (user is null)
+            return Unauthorized(new AuthResultDto(false, null, InvalidCredentialsErrors));
 
-        var signInResult = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: false);
-        if (!signInResult.Succeeded) return Unauthorized(new AuthResultDto(false, null, new[] { "Invalid credentials" }));
+        var signInResult = await signInManager.CheckPasswordSignInAsync(
+            user,
+            dto.Password,
+            lockoutOnFailure: false
+        );
+
+        if (!signInResult.Succeeded)
+            return Unauthorized(new AuthResultDto(false, null, InvalidCredentialsErrors));
 
         var token = await GenerateJwtToken(user);
         return Ok(new AuthResultDto(true, token, Array.Empty<string>()));
@@ -66,34 +73,37 @@ public class AuthenticationController : ControllerBase
 
     private async Task<string> GenerateJwtToken(ApplicationUser user)
     {
-        // Try configuration then environment variable fallback, and give a clear error
-        var key = _config["Jwt:Key"] 
-                  ?? Environment.GetEnvironmentVariable("JWT_KEY") 
-                  ?? throw new InvalidOperationException("Jwt:Key not configured. Add Jwt:Key to appsettings or set JWT_KEY environment variable.");
+        var key = config["Jwt:Key"]
+                  ?? Environment.GetEnvironmentVariable("JWT_KEY")
+                  ?? throw new InvalidOperationException(
+                      "Jwt:Key not configured. Add Jwt:Key to appsettings or set JWT_KEY environment variable."
+                  );
 
-        var issuer = _config["Jwt:Issuer"] 
-                     ?? Environment.GetEnvironmentVariable("JWT_ISSUER") 
+        var issuer = config["Jwt:Issuer"]
+                     ?? Environment.GetEnvironmentVariable("JWT_ISSUER")
                      ?? "MatchFlow";
 
-        var keyBytes = Encoding.UTF8.GetBytes(key);
-        var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            SecurityAlgorithms.HmacSha256
+        );
 
-        var claims = new List<Claim>
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
-            new Claim("displayName", user.DisplayName ?? string.Empty)
-        };
+        List<Claim> claims =
+        [
+            new(JwtRegisteredClaimNames.Sub, user.Id),
+            new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
+            new("displayName", user.DisplayName ?? string.Empty)
+        ];
 
-        var userClaims = await _userManager.GetClaimsAsync(user);
-        claims.AddRange(userClaims);
+        claims.AddRange(await userManager.GetClaimsAsync(user));
 
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: issuer,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(8),
-            signingCredentials: creds);
+            signingCredentials: creds
+        );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
