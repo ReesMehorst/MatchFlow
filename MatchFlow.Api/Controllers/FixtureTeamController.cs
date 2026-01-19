@@ -26,12 +26,12 @@ public class FixtureTeamController : ControllerBase
         return Ok(fixtureTeams);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{fixtureId:guid}/{teamId:guid}")]
+    public async Task<IActionResult> GetById(Guid fixtureId, Guid teamId)
     {
-        var fixtureTeams = await _dbContext.FixtureTeams.FindAsync(id);
-        if (fixtureTeams == null) return NotFound();
-        return Ok(fixtureTeams);
+        var fixtureTeam = await _dbContext.FixtureTeams.FindAsync(fixtureId, teamId);
+        if (fixtureTeam == null) return NotFound();
+        return Ok(fixtureTeam);
     }
 
     [HttpPost]
@@ -48,6 +48,11 @@ public class FixtureTeamController : ControllerBase
 
         _dbContext.FixtureTeams.Add(fixtureTeam);
         await _dbContext.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = fixtureTeam.Id }, fixtureTeam);
+
+        return CreatedAtAction(
+            nameof(GetById), 
+            new { fixtureId = fixtureTeam.FixtureId, teamId = fixtureTeam.TeamId },
+            fixtureTeam
+        );
     }
 }

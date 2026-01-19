@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MatchFlow.Infrastructure.DBContext;
 using MatchFlow.Domain.Entities;
 using MatchFlow.Api.Models;
+using Microsoft.Extensions.Configuration.UserSecrets;
 
 namespace MatchFlow.Api.Controllers;
 
@@ -26,12 +27,12 @@ public class FixtureParticipantController : ControllerBase
         return Ok(fixtureParticipants);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{fixtureId:guid}/{userId:string}")]
+    public async Task<IActionResult> GetById(Guid fixtureId, string userId)
     {
-        var fixtureParticipants = await _dbContext.FixtureParticipants.FindAsync(id);
-        if (fixtureParticipants == null) return NotFound();
-        return Ok(fixtureParticipants);
+        var fixtureParticipant = await _dbContext.FixtureParticipants.FindAsync(fixtureId, userId);
+        if (fixtureParticipant == null) return NotFound();
+        return Ok(fixtureParticipant);
     }
 
     [HttpPost]
@@ -49,6 +50,9 @@ public class FixtureParticipantController : ControllerBase
 
         _dbContext.FixtureParticipants.Add(fixtureParticipant);
         await _dbContext.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = fixtureParticipant.Id }, fixtureParticipant);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { fixtureId = fixtureParticipant.FixtureId, userId = fixtureParticipant.UserId },
+            fixtureParticipant);
     }
 }
