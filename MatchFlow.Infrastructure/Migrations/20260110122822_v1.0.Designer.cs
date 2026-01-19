@@ -4,6 +4,7 @@ using MatchFlow.Infrastructure.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MatchFlow.Infrastructure.Migrations
 {
     [DbContext(typeof(MatchFlowDbContext))]
-    partial class MatchFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260110122822_v1.0")]
+    partial class v10
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -85,26 +88,9 @@ namespace MatchFlow.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("TeamAId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("TeamAScore")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("TeamBId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("TeamBScore")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("TournamentId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("GameId");
-
-                    b.HasIndex("TournamentId");
 
                     b.ToTable("Fixtures");
                 });
@@ -182,6 +168,34 @@ namespace MatchFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Games");
+                });
+
+            modelBuilder.Entity("MatchFlow.Domain.Entities.GameMatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TeamAId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("TeamAScore")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TeamBId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("TeamBScore")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentId");
+
+                    b.ToTable("Matches");
                 });
 
             modelBuilder.Entity("MatchFlow.Domain.Entities.Post", b =>
@@ -624,13 +638,7 @@ namespace MatchFlow.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("GameId");
 
-                    b.HasOne("MatchFlow.Domain.Entities.Tournament", "Tournament")
-                        .WithMany("Fixtures")
-                        .HasForeignKey("TournamentId");
-
                     b.Navigation("Game");
-
-                    b.Navigation("Tournament");
                 });
 
             modelBuilder.Entity("MatchFlow.Domain.Entities.FixtureParticipant", b =>
@@ -669,6 +677,17 @@ namespace MatchFlow.Infrastructure.Migrations
                     b.Navigation("Fixture");
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("MatchFlow.Domain.Entities.GameMatch", b =>
+                {
+                    b.HasOne("MatchFlow.Domain.Entities.Tournament", "Tournament")
+                        .WithMany("Matches")
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tournament");
                 });
 
             modelBuilder.Entity("MatchFlow.Domain.Entities.Post", b =>
@@ -830,7 +849,7 @@ namespace MatchFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("MatchFlow.Domain.Entities.Tournament", b =>
                 {
-                    b.Navigation("Fixtures");
+                    b.Navigation("Matches");
                 });
 #pragma warning restore 612, 618
         }
