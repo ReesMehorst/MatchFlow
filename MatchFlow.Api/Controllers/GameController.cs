@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MatchFlow.Infrastructure.DBContext;
 using MatchFlow.Domain.Entities;
-using MatchFlow.Api.Models;
+using MatchFlow.Api.Dtos;
 
 namespace MatchFlow.Api.Controllers;
 
@@ -10,42 +10,55 @@ namespace MatchFlow.Api.Controllers;
 [Route("api/[controller]")]
 public class GameController : ControllerBase
 {
-    private readonly MatchFlowDbContext _dbContext;
-    public GameController(MatchFlowDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    private readonly MatchFlowDbContext _db;
+
+    public GameController(MatchFlowDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<IEnumerable<GameDto>>> GetAll()
     {
-        var games = await _dbContext.Games
-            .AsNoTracking()
+        var games = await _db.Set<Game>()
+            .Select(g => new GameDto(g.Id, g.Name, g.IconUrl, g.Genre))
             .ToListAsync();
-
         return Ok(games);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<ActionResult<GameDto>> Get(Guid id)
     {
-        var game = await _dbContext.Games.FindAsync(id);
-        if (game == null) return NotFound();
-        return Ok(game);
+        var g = await _db.Set<Game>().FindAsync(id);
+        if (g is null) return NotFound();
+        return Ok(new GameDto(g.Id, g.Name, g.IconUrl, g.Genre));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] GameCreateDto dto)
+    public async Task<ActionResult<GameDto>> Create(CreateGameDto dto)
     {
-        var game = new Game
-        {
-            Name    = dto.Name,
-            Genre   = dto.Genre,
-            IconUrl = dto.IconUrl
-        };
+        var g = new Game { Id = Guid.NewGuid(), Name = dto.Name, IconUrl = dto.IconUrl, Genre = dto.Genre };
+        _db.Set<Game>().Add(g);
+        await _db.SaveChangesAsync();
+        return CreatedAtAction(nameof(Get), new { id = g.Id }, new GameDto(g.Id, g.Name, g.IconUrl, g.Genre));
+    }
 
-        _dbContext.Games.Add(game);
-        await _dbContext.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = game.Id }, game);
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, UpdateGameDto dto)
+    {
+        var g = await _db.Set<Game>().FindAsync(id);
+        if (g is null) return NotFound();
+        g.Name = dto.Name;
+        g.IconUrl = dto.IconUrl;
+        g.Genre = dto.Genre;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var g = await _db.Set<Game>().FindAsync(id);
+        if (g is null) return NotFound();
+        _db.Set<Game>().Remove(g);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }
