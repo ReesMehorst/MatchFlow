@@ -1,0 +1,42 @@
+.siteFooter {
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(18, 10, 28, 0.40);
+}
+
+.footerInner {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 0;
+    color: rgba(203, 185, 230, 0.90);
+}
+
+.footerLinks {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.footerLink {
+    color: rgba(203, 185, 230, 0.95);
+    text-decoration: none;
+}
+
+    .footerLink:hover,
+    .footerLink:focus-visible {
+        color: var(--text);
+        outline: none;
+    }
+
+.footerDot {
+    opacity: 0.7;
+}
+
+/* Show nav on desktop */
+@media (min-width: 820px) {
+    .nav {
+        display: flex;
+    }
+}
