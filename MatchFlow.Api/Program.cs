@@ -11,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Identity.UI;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +79,38 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Ensure Identity roles exist (seed roles) to avoid AddToRoleAsync throwing when role missing
+try
+{
+    using var scope = app.Services.CreateScope();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("RoleSeeder");
+
+    var rolesToEnsure = new[] { "User", "Admin" };
+    foreach (var roleName in rolesToEnsure)
+    {
+        var exists = roleManager.RoleExistsAsync(roleName).GetAwaiter().GetResult();
+        if (!exists)
+        {
+            var createResult = roleManager.CreateAsync(new IdentityRole(roleName)).GetAwaiter().GetResult();
+            if (!createResult.Succeeded)
+            {
+                logger.LogError("Failed to create role {Role}: {Errors}", roleName,
+                    string.Join(", ", createResult.Errors.Select(e => e.Description)));
+            }
+            else
+            {
+                logger.LogInformation("Created missing role {Role}", roleName);
+            }
+        }
+    }
+}
+catch (Exception ex)
+{
+    var lf = app.Services.GetRequiredService<ILoggerFactory>();
+    var logger = lf.CreateLogger("RoleSeeder");
+    logger.LogError(ex, "Error while seeding roles");
+}
 
 if (app.Environment.IsDevelopment())
 {
