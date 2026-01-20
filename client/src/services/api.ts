@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "https://localhost:7267/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "https://localhost:5001/api";
 
 function getToken(): string | null {
     return localStorage.getItem("mf_token");

@@ -5,6 +5,12 @@ using Microsoft.IdentityModel.Tokens;
 using MatchFlow.Infrastructure.DBContext;
 using MatchFlow.Infrastructure.Identity;
 using System.Text;
+using MatchFlow.Domain.Entities;
+using Microsoft.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Identity.UI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +19,7 @@ builder.Services.AddDbContext<MatchFlowDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(opt =>
+IdentityBuilder identityBuilder = builder.Services.AddIdentity<ApplicationUser, IdentityRole>(opt =>
 {
     opt.Password.RequiredLength = 8;
     opt.User.RequireUniqueEmail = true;
@@ -58,11 +64,46 @@ builder.Services.AddCors(opt =>
 
 builder.Services.AddControllers();
 
+// Swagger / OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MatchFlow API", Version = "v1" });
+
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
+});
+
 var app = builder.Build();
 
+
+if (app.Environment.IsDevelopment())
+{
+    // Serve swagger and make it the app root in dev so the browser opens to it
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MatchFlow API v1");
+        // If you want the UI at / instead of /swagger set RoutePrefix = string.Empty
+        // c.RoutePrefix = string.Empty;
+    });
+}
+else
+{
+    // In production serve the built SPA from wwwroot
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+    app.MapFallbackToFile("index.html");
+}
+
+app.UseHttpsRedirection();
+
 app.UseCors("client");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();
