@@ -1,19 +1,19 @@
 namespace MatchFlow.Api.Dtos;
 
-public record RegisterDto(
-    string UserName, 
-    string DisplayName, 
+public sealed record RegisterDto(
+    string Email, 
+    string Password, 
+    string DisplayName
+);
+
+public sealed record LoginDto(
     string Email, 
     string Password
 );
 
-public record LoginDto(
-    string UserNameOrEmail, 
-    string Password
-);
-
-public record AuthResultDto(
-    bool Success, 
-    string? Token, 
-    string[] Errors
+public sealed record AuthResultDto(
+    string Token,
+    string Email,
+    string DisplayName,
+    string[] Roles
 );

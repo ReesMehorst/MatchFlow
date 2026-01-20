@@ -1,110 +1,93 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using MatchFlow.Api.Dtos;
-using MatchFlow.Infrastructure.Identity;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace MatchFlow.Api.Controllers;
-
 [ApiController]
-[Route("api/[controller]")]
-public class AuthenticationController(
-    UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager,
-    IConfiguration config
-) : ControllerBase
+[Route("api/auth")]
+public class AuthController : ControllerBase
 {
-    private static readonly string[] UserAlreadyExistsErrors = ["User already exists"];
-    private static readonly string[] InvalidCredentialsErrors = ["Invalid credentials"];
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IConfiguration _config;
+
+    public AuthController(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        IConfiguration config)
+    {
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _config = config;
+    }
 
     [HttpPost("register")]
     public async Task<ActionResult<AuthResultDto>> Register(RegisterDto dto)
     {
-        var existing = await userManager.FindByNameAsync(dto.UserName);
-        if (existing is not null)
-            return BadRequest(new AuthResultDto(false, null, UserAlreadyExistsErrors));
+        var existing = await _userManager.FindByEmailAsync(dto.Email);
+        if (existing != null) return BadRequest("Email already in use.");
 
         var user = new ApplicationUser
         {
-            UserName = dto.UserName,
+            UserName = dto.Email,
             Email = dto.Email,
-            DisplayName = dto.DisplayName,
-            CreatedAt = DateTimeOffset.UtcNow
+            DisplayName = dto.DisplayName
         };
 
-        var result = await userManager.CreateAsync(user, dto.Password);
-        if (!result.Succeeded)
-            return BadRequest(new AuthResultDto(
-                false,
-                null,
-                result.Errors.Select(e => e.Description).ToArray()
-            ));
+        var result = await _userManager.CreateAsync(user, dto.Password);
+        if (!result.Succeeded) return BadRequest(result.Errors.Select(e => e.Description));
 
-        var token = await GenerateJwtToken(user);
-        return Ok(new AuthResultDto(true, token, Array.Empty<string>()));
+        // Optional: default role
+        await _userManager.AddToRoleAsync(user, "User");
+
+        return await IssueToken(user);
     }
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResultDto>> Login(LoginDto dto)
     {
-        var user = dto.UserNameOrEmail.Contains('@')
-            ? await userManager.FindByEmailAsync(dto.UserNameOrEmail)
-            : await userManager.FindByNameAsync(dto.UserNameOrEmail);
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+        if (user == null) return Unauthorized("Invalid credentials.");
 
-        if (user is null)
-            return Unauthorized(new AuthResultDto(false, null, InvalidCredentialsErrors));
+        var ok = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: false);
+        if (!ok.Succeeded) return Unauthorized("Invalid credentials.");
 
-        var signInResult = await signInManager.CheckPasswordSignInAsync(
-            user,
-            dto.Password,
-            lockoutOnFailure: false
-        );
-
-        if (!signInResult.Succeeded)
-            return Unauthorized(new AuthResultDto(false, null, InvalidCredentialsErrors));
-
-        var token = await GenerateJwtToken(user);
-        return Ok(new AuthResultDto(true, token, Array.Empty<string>()));
+        return await IssueToken(user);
     }
 
-    private async Task<string> GenerateJwtToken(ApplicationUser user)
+    private async Task<AuthResultDto> IssueToken(ApplicationUser user)
     {
-        var key = config["Jwt:Key"]
-                  ?? Environment.GetEnvironmentVariable("JWT_KEY")
-                  ?? throw new InvalidOperationException(
-                      "Jwt:Key not configured. Add Jwt:Key to appsettings or set JWT_KEY environment variable."
-                  );
+        var jwt = _config.GetSection("Jwt");
+        var roles = await _userManager.GetRolesAsync(user);
 
-        var issuer = config["Jwt:Issuer"]
-                     ?? Environment.GetEnvironmentVariable("JWT_ISSUER")
-                     ?? "MatchFlow";
-
-        var creds = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-            SecurityAlgorithms.HmacSha256
-        );
-
-        List<Claim> claims =
-        [
+        var claims = new List<Claim>
+        {
             new(JwtRegisteredClaimNames.Sub, user.Id),
-            new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
-            new("displayName", user.DisplayName ?? string.Empty)
-        ];
+            new(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+            new("displayName", user.DisplayName ?? ""),
+        };
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
-        claims.AddRange(await userManager.GetClaimsAsync(user));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: issuer,
+            issuer: jwt["Issuer"],
+            audience: jwt["Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(8),
+            expires: DateTime.UtcNow.AddHours(6),
             signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+        return new AuthResultDto(
+            tokenString,
+            user.Email ?? "",
+            user.DisplayName ?? "",
+            roles.ToArray()
+        );
     }
 }

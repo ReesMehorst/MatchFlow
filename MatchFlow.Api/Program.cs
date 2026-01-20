@@ -1,69 +1,68 @@
-using MatchFlow.Domain.Entities;
-using MatchFlow.Infrastructure.DBContext;
-using MatchFlow.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.AspNetCore.Identity.UI;
+using Microsoft.IdentityModel.Tokens;
+using MatchFlow.Infrastructure.DBContext;
+using MatchFlow.Infrastructure.Identity;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddDbContext<MatchFlowDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+// Db
+builder.Services.AddDbContext<MatchFlowDbContext>(opt =>
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // Identity
-IdentityBuilder identityBuilder = builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(opt =>
 {
-    options.User.RequireUniqueEmail = false;
-    // configure password / lockout / etc as needed
+    opt.Password.RequiredLength = 8;
+    opt.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<MatchFlowDbContext>()
 .AddDefaultTokenProviders();
 
-builder.Services.AddControllers();
+// JWT
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSection["Key"]!);
 
-// Add CORS to allow Vite dev server
-builder.Services.AddCors(options =>
+builder.Services.AddAuthentication(opt =>
 {
-    options.AddPolicy("AllowLocalDev", policy =>
+    opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(opt =>
+{
+    opt.TokenValidationParameters = new TokenValidationParameters
     {
-        policy.WithOrigins("http://localhost:5173") // Vite default
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ValidIssuer = jwtSection["Issuer"],
+        ValidAudience = jwtSection["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddAuthorization();
+
+// CORS for Vite dev server
+builder.Services.AddCors(opt =>
+{
+    opt.AddPolicy("client", p =>
+        p.WithOrigins("http://localhost:5173")
+         .AllowAnyHeader()
+         .AllowAnyMethod()
+         .AllowCredentials());
+});
+
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
-{
-    // In production serve the built SPA from wwwroot
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
-    app.MapFallbackToFile("index.html");
-}
-
-app.UseHttpsRedirection();
-
-app.UseCors("AllowLocalDev");
-
+app.UseCors("client");
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();

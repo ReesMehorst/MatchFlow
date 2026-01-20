@@ -8,7 +8,6 @@ export default function App() {
             <Routes>
                 <Route element={<MainLayout />}>
                     <Route path="/" element={<HomePage />} />
-                    {/* Add more routes here */}
                 </Route>
             </Routes>
         </BrowserRouter>
