@@ -6,6 +6,7 @@ using MatchFlow.Api.Dtos;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/auth")]
@@ -50,7 +51,29 @@ public class AuthenticationController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResultDto>> Login(LoginDto dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email);
+        var identifier = (dto.Email ?? string.Empty).Trim();
+
+        // Try common identifier types: email, username, displayName (case-insensitive)
+        ApplicationUser? user = null;
+
+        if (!string.IsNullOrEmpty(identifier))
+        {
+            user = await _userManager.FindByEmailAsync(identifier);
+
+            if (user == null)
+            {
+                user = await _userManager.FindByNameAsync(identifier);
+            }
+
+            if (user == null)
+            {
+                // search by DisplayName (case-insensitive)
+                var lowered = identifier.ToLower();
+                user = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.DisplayName != null && u.DisplayName.ToLower() == lowered);
+            }
+        }
+
         if (user == null) return Unauthorized("Invalid credentials.");
 
         var ok = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: false);

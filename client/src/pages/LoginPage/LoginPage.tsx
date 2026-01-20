@@ -6,7 +6,7 @@ export default function LoginPage() {
     const nav = useNavigate();
     const { login } = useAuth();
 
-    const [email, setEmail] = useState("");
+    const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -16,7 +16,8 @@ export default function LoginPage() {
         setError(null);
         setLoading(true);
         try {
-            await login({ email, password });
+            // server Login DTO expects 'Email' property; send identifier under that property
+            await login({ email: identifier, password });
             nav("/");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Login failed");
@@ -34,13 +35,13 @@ export default function LoginPage() {
 
                 <form onSubmit={onSubmit}>
                     <label>
-                        Email
+                        Email or display name
                         <input
                             className="input"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            type="email"
-                            autoComplete="email"
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
+                            type="text"
+                            autoComplete="username"
                             required
                         />
                     </label>
