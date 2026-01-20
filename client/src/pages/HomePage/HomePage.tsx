@@ -12,7 +12,7 @@ export default function HomePage() {
                             MatchFlow helps teams organize matches and share progress.
                         </h1>
                         <p className="heroSubtitle">
-                            Create teams, schedule fixtures, track participants and results, and post highlights in one place.
+                            Create teams, schedule matches, track players and results, and post highlights in one place.
                         </p>
 
                         <div className="heroCtas">
@@ -40,7 +40,7 @@ export default function HomePage() {
                                 <div className="panelDot" aria-hidden="true" />
                                 <div className="panelText">
                                     <strong>Match scheduled</strong>
-                                    <div className="panelSub">Team Alpha vs Team Beta &#8226; 19:30</div>
+                                    <div className="panelSub">Team A vs Team B &#8226; 19:30</div>
                                 </div>
                             </div>
 
@@ -66,7 +66,7 @@ export default function HomePage() {
                 <section className="section" aria-labelledby="features-title">
                     <div className="sectionHeader">
                         <h2 id="features-title" className="sectionTitle">Core features</h2>
-                        <p className="sectionSubtitle">Everything you need for teams and fixtures.</p>
+                        <p className="sectionSubtitle">Everything you need for teams and matches.</p>
                     </div>
 
                     <div className="grid3">
@@ -77,7 +77,7 @@ export default function HomePage() {
 
                         <article className="featureCard">
                             <h3 className="featureTitle">Matches</h3>
-                            <p className="featureText">Schedule fixtures, track status, score, and participants per team.</p>
+                            <p className="featureText">Schedule matches, track status, score, and participants per team.</p>
                         </article>
 
                         <article className="featureCard">
