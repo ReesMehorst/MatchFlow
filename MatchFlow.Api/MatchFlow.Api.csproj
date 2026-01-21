@@ -29,4 +29,8 @@
     <ProjectReference Include="..\MatchFlow.Infrastructure\MatchFlow.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

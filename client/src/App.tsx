@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import RequireUnauth from "./components/RequireUnauth";
 import TeamsPage from "./pages/Teams/pages/TeamsPage";
+import CreateTeamPage from "./pages/Teams/pages/CreateTeamPage";
 
 export default function App() {
     return (
@@ -29,6 +30,7 @@ export default function App() {
                         }
                     />
                     <Route path="/teams" element={<TeamsPage />} />
+                    <Route path="/teams/create" element={<CreateTeamPage />} />
                 </Route>
             </Routes>
         </BrowserRouter>

@@ -79,6 +79,16 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// add after `var app = builder.Build();`
+app.UseStaticFiles();
+
+// ensure uploads folder exists
+var uploads = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads", "teams");
+Directory.CreateDirectory(uploads);
+
+// then map controllers as usual
+app.MapControllers();
+
 // Ensure Identity roles exist (seed roles) to avoid AddToRoleAsync throwing when role missing
 try
 {

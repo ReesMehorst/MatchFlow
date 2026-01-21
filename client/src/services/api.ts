@@ -4,19 +4,73 @@ function getToken(): string | null {
     return localStorage.getItem("mf_token");
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const headers = new Headers(options.headers);
-    headers.set("Content-Type", "application/json");
+type RequestOptions = Omit<RequestInit, "body" | "headers"> & {
+    headers?: HeadersInit;
+    body?: unknown;
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+    return typeof v === "object" && v !== null;
+}
+
+function isBodyInit(v: unknown): v is BodyInit {
+    if (typeof v === "string") return true;
+    if (typeof Blob !== "undefined" && v instanceof Blob) return true;
+    if (typeof FormData !== "undefined" && v instanceof FormData) return true;
+    if (typeof URLSearchParams !== "undefined" && v instanceof URLSearchParams) return true;
+    if (typeof ArrayBuffer !== "undefined" && v instanceof ArrayBuffer) return true;
+    if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(v)) return true;
+    if (typeof ReadableStream !== "undefined" && v instanceof ReadableStream) return true;
+    return false;
+}
+
+function tryParseJson(text: string): unknown {
+    try {
+        const parsed: unknown = JSON.parse(text) as unknown;
+        return parsed;
+    } catch {
+        return text;
+    }
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    const { body: rawBody, headers: headerInit, ...rest } = options;
+
+    const headers = new Headers(headerInit);
 
     const token = getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
 
-    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    let body: BodyInit | undefined;
+
+    if (rawBody !== undefined && rawBody !== null) {
+        if (isBodyInit(rawBody)) {
+            body = rawBody; // narrowed to BodyInit
+        } else {
+            headers.set("Content-Type", "application/json");
+            body = JSON.stringify(rawBody);
+        }
+    }
+
+    const fetchOptions: RequestInit = {
+        ...rest,
+        headers,
+        ...(body !== undefined ? { body } : {}),
+    };
+
+    const res = await fetch(`${API_URL}${path}`, fetchOptions);
+
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    const data = text ? tryParseJson(text) : null;
 
     if (!res.ok) {
-        const message = typeof data === "string" ? data : data?.message ?? "Request failed";
+        const message =
+            typeof data === "string"
+                ? data
+                : isRecord(data) && typeof data.message === "string"
+                    ? data.message
+                    : "Request failed";
+
         throw new Error(message);
     }
 
@@ -25,6 +79,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
     get: <T>(path: string) => request<T>(path),
-    post: <T>(path: string, body?: unknown) =>
-        request<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) }),
+    post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
+    put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
+    del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
