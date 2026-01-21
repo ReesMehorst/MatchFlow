@@ -5,6 +5,7 @@
     --primary-3: #a52fee;
     /* Dark theme base */
     --bg: #0b0711;
+    color-scheme: dark;
     --surface: #120a1c;
     --surface-2: #1a0f28;
     --text: #f4efff;
@@ -29,6 +30,7 @@ html, body {
 body {
     margin: 0;
     color: var(--text);
+    color-scheme: dark;
     background: var(--bg);
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
     line-height: 1.5;
@@ -151,4 +153,33 @@ img {
     .input:focus-visible {
         outline: 3px solid rgba(175, 71, 240, 0.6);
         outline-offset: 2px;
+    }
+
+/* === Select (dropdown) styling (closed state) === */
+select.input {
+    cursor: pointer;
+    padding-right: 40px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: rgba(255, 255, 255, 0.06);
+    background-image: linear-gradient(45deg, transparent 50%, rgba(203,185,230,0.9) 50%), linear-gradient(135deg, rgba(203,185,230,0.9) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    color-scheme: dark;
+}
+
+/* === Number input spinner handling === */
+    /* Chrome, Safari, Edge */
+    input[type="number"].input::-webkit-outer-spin-button,
+    input[type="number"].input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    /* Firefox */
+    input[type="number"].input {
+        -moz-appearance: textfield;
+        appearance: textfield;
     }
