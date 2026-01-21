@@ -4,6 +4,7 @@ import HomePage from "./pages/HomePage/HomePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import RequireUnauth from "./components/RequireUnauth";
+import TeamsPage from "./pages/Teams/pages/TeamsPage";
 
 export default function App() {
     return (
@@ -27,6 +28,7 @@ export default function App() {
                             </RequireUnauth>
                         }
                     />
+                    <Route path="/teams" element={<TeamsPage />} />
                 </Route>
             </Routes>
         </BrowserRouter>

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System;
 
 namespace MatchFlow.Api.Dtos;
@@ -13,8 +14,8 @@ public record TeamDto(
 );
 
 public record CreateTeamDto(
-    string Name, 
-    string Tag, 
+    [Required, StringLength(100, MinimumLength = 2)] string Name, 
+    [Required, StringLength(5, MinimumLength = 2)] string Tag, 
     string OwnerUserId, 
     string? LogoUrl, 
     string? Bio

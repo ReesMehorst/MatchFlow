@@ -1,0 +1,126 @@
+.teamsPage {
+    padding: 28px 0 60px;
+}
+
+.teamsHeader {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.teamsTitle {
+    margin: 0;
+    font-size: 28px;
+}
+
+.teamsSubtitle {
+    margin: 6px 0 0;
+    color: var(--muted);
+}
+
+.teamsFilters {
+    margin-top: 16px;
+    padding: 16px;
+}
+
+.filterRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.filterField {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.filterActions {
+    display: flex;
+    align-items: end;
+}
+
+.teamsMessage {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.04);
+}
+
+.teamsGrid {
+    margin-top: 16px;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: 1fr;
+}
+
+.teamCard {
+    padding: 16px;
+}
+
+.teamNameRow {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.teamName {
+    margin: 0;
+    font-size: 18px;
+}
+
+.teamTag {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(175, 71, 240, 0.30);
+    background: rgba(175, 71, 240, 0.12);
+    white-space: nowrap;
+}
+
+.teamMeta {
+    margin-top: 8px;
+    color: rgba(203,185,230,0.9);
+}
+
+.teamDesc {
+    margin: 12px 0 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.teamActions {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.teamsPager {
+    margin-top: 18px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pagerText {
+    color: var(--muted);
+}
+
+@media (min-width: 820px) {
+    .filterRow {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .teamsGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
