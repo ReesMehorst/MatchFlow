@@ -1,8 +1,8 @@
-.teamsPage {
+.page {
     padding: 28px 0 60px;
 }
 
-.teamsHeader {
+.pageHeader {
     display: flex;
     gap: 14px;
     align-items: flex-start;
@@ -10,16 +10,91 @@
     flex-wrap: wrap;
 }
 
-.teamsTitle {
+.pageTitle {
     margin: 0;
     font-size: 28px;
 }
 
-.teamsSubtitle {
+.pageSubtitle {
     margin: 6px 0 0;
     color: var(--muted);
+    line-height: 1.6;
+    max-width: 70ch;
 }
 
+.pageCard {
+    margin-top: 16px;
+    padding: 16px;
+}
+
+/* Messages / errors */
+.pageMessage {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.formError {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+}
+
+/* Form grid (Create team) */
+.formGrid {
+    display: grid;
+    gap: 12px;
+}
+
+.formField {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.formFieldFull {
+    grid-column: 1 / -1;
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 110px;
+}
+
+.hint {
+    font-size: 12px;
+    color: rgba(203, 185, 230, 0.8);
+}
+
+.hintError {
+    font-size: 12px;
+    color: rgba(255, 210, 240, 0.95);
+}
+
+.formActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.logoPreview {
+    margin-top: 8px;
+}
+
+    .logoPreview img {
+        max-width: 160px;
+        max-height: 160px;
+        display: block;
+    }
+
+/* Filters (Teams page) */
 .teamsFilters {
     margin-top: 16px;
     padding: 16px;
@@ -43,14 +118,7 @@
     align-items: end;
 }
 
-.teamsMessage {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: rgba(255,255,255,0.04);
-}
-
+/* Teams grid + cards */
 .teamsGrid {
     margin-top: 16px;
     display: grid;
@@ -85,7 +153,7 @@
 
 .teamMeta {
     margin-top: 8px;
-    color: rgba(203,185,230,0.9);
+    color: rgba(203, 185, 230, 0.9);
 }
 
 .teamDesc {
@@ -102,6 +170,7 @@
     flex-wrap: wrap;
 }
 
+/* Pager */
 .teamsPager {
     margin-top: 18px;
     display: flex;
@@ -115,7 +184,13 @@
     color: var(--muted);
 }
 
+/* Breakpoints */
 @media (min-width: 820px) {
+    .formGrid {
+        grid-template-columns: 1fr 280px;
+        align-items: start;
+    }
+
     .filterRow {
         grid-template-columns: repeat(3, 1fr);
     }

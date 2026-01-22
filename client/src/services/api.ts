@@ -64,22 +64,30 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     const data = text ? tryParseJson(text) : null;
 
     if (!res.ok) {
-        const message =
-            typeof data === "string"
-                ? data
-                : isRecord(data) && typeof data.message === "string"
-                    ? data.message
-                    : "Request failed";
+        // Prefer explicit, typed checks over `any`.
+        if (typeof data === "string") {
+            throw new Error(data);
+        }
 
-        throw new Error(message);
+        if (isRecord(data)) {
+            const maybeMessage = data["message"];
+            if (typeof maybeMessage === "string") {
+                throw new Error(maybeMessage);
+            }
+        }
+
+        throw new Error("Request failed");
     }
 
     return data as T;
 }
 
 export const api = {
-    get: <T>(path: string) => request<T>(path),
-    post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
-    put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
-    del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+    get: <T>(path: string, options?: RequestOptions) => request<T>(path, options),
+    post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+        request<T>(path, { method: "POST", body, ...(options ?? {}) }),
+    put: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+        request<T>(path, { method: "PUT", body, ...(options ?? {}) }),
+    del: <T>(path: string, options?: RequestOptions) =>
+        request<T>(path, { method: "DELETE", ...(options ?? {}) }),
 };
