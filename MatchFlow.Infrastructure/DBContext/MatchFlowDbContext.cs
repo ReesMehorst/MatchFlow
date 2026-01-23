@@ -35,8 +35,9 @@ public sealed class MatchFlowDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(t => t.Name)
             .IsUnique();
         modelBuilder.Entity<Team>()
-            .HasIndex(t => t.Tag)
-            .IsUnique();
+            .Property(t => t.Tag)
+            .HasMaxLength(5)
+            .IsRequired();
 
         // TeamMember: ensure single active membership per (Team,User)
         modelBuilder.Entity<TeamMember>()
