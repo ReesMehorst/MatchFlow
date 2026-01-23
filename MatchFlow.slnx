@@ -1,5 +1,4 @@
 <Solution>
-  <Folder Name="/client/" />
   <Project Path="MatchFlow.Api/MatchFlow.Api.csproj" />
   <Project Path="MatchFlow.Application/MatchFlow.Application.csproj" />
   <Project Path="MatchFlow.Domain/MatchFlow.Domain.csproj" />
