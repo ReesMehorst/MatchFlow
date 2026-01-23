@@ -79,15 +79,11 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// add after `var app = builder.Build();`
+// Serve static files and ensure uploads exist
 app.UseStaticFiles();
 
-// ensure uploads folder exists
 var uploads = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads", "teams");
 Directory.CreateDirectory(uploads);
-
-// then map controllers as usual
-app.MapControllers();
 
 // Ensure Identity roles exist (seed roles) to avoid AddToRoleAsync throwing when role missing
 try
@@ -141,13 +137,16 @@ else
     app.MapFallbackToFile("index.html");
 }
 
+// Important middleware ordering
 app.UseHttpsRedirection();
 
+// CORS must run before authentication/authorization and before endpoints
 app.UseCors("client");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map controllers/endpoints last
 app.MapControllers();
 
 app.Run();

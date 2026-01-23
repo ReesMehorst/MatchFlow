@@ -1,4 +1,4 @@
-type Props = {
+﻿type Props = {
     page: number;
     total: number;
     pageSize: number;
@@ -29,7 +29,7 @@ export default function TeamsPager({
             </button>
 
             <span className="pagerText">
-                Page {page} � {total} total
+                Page {page} • {total} total
                 {pageSize ? "" : ""}
             </span>
 
