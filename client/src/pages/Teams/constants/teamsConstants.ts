@@ -43,7 +43,7 @@ function toQuery(filters: TeamFilters) {
 }
 
 export const teamsApi = {
-    // use /team (singular) to match TeamController
-    list: (filters: TeamFilters) => api.get<TeamListResponse>(`/team?${toQuery(filters)}`),
+    // Use compatibility endpoint for now to ensure the frontend receives the expected paged response
+    list: (filters: TeamFilters) => api.get<TeamListResponse>(`/team/list`),
     join: (teamId: string) => api.post<void>(`/team/${teamId}/join`),
 };

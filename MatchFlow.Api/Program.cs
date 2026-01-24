@@ -64,7 +64,11 @@ builder.Services.AddCors(opt =>
          .AllowCredentials());
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 // App services
 builder.Services.AddHttpContextAccessor();

@@ -35,9 +35,13 @@ export function useTeams(initial?: TeamFilters) {
             setError(null);
             try {
                 const res = await teamsApi.list(stableFilters);
+                console.log('[useTeams] fetched teams', { filters: stableFilters, res });
                 if (!cancelled) setData(res);
             } catch (e) {
-                if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load teams");
+            if (!cancelled) {
+                console.error('[useTeams] error fetching teams', e);
+                setError(e instanceof Error ? e.message : "Failed to load teams");
+            }
             } finally {
                 if (!cancelled) setLoading(false);
             }
