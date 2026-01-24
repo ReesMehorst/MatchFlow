@@ -14,8 +14,12 @@ namespace MatchFlow.Api.Controllers;
 public class TeamController : ControllerBase
 {
     private readonly MatchFlowDbContext _db;
+    private readonly MatchFlow.Api.Services.IUploadService _uploads;
+    private readonly MatchFlow.Api.Services.ICurrentUserService _currentUser;
+    private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env;
 
-    public TeamController(MatchFlowDbContext db) => _db = db;
+    public TeamController(MatchFlowDbContext db, MatchFlow.Api.Services.IUploadService uploads, MatchFlow.Api.Services.ICurrentUserService currentUser, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
+        => (_db, _uploads, _currentUser, _env) = (db, uploads, currentUser, env);
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TeamDto>>> GetAll()
@@ -36,61 +40,32 @@ public class TeamController : ControllerBase
 
     [HttpPost]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult<TeamDto>> Create([FromForm] CreateTeamDto dto)
+    public async Task<ActionResult<TeamDto>> Create([FromForm] CreateTeamDto dto, CancellationToken cancellationToken)
     {
         // Basic validation
         if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Tag))
             return BadRequest("Name and Tag are required.");
 
-        if (string.IsNullOrWhiteSpace(dto.OwnerUserId) && User?.Identity?.IsAuthenticated == true)
-        {
-            dto.OwnerUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        }
+        // Resolve owner id from DTO or current user claims
         if (string.IsNullOrWhiteSpace(dto.OwnerUserId))
-        {
+            dto.OwnerUserId = _currentUser.GetUserId();
+
+        if (string.IsNullOrWhiteSpace(dto.OwnerUserId))
             return BadRequest("OwnerUserId is required.");
-        }
 
         string? logoUrl = null;
-
-        if (dto.LogoFile != null && dto.LogoFile.Length > 0)
+        try
         {
-            // Validate allowed file types
-            var allowed = new[] { "image/png", "image/jpeg" };
-            if (!allowed.Contains(dto.LogoFile.ContentType))
-                return BadRequest("Only PNG and JPEG images are allowed for logo.");
-
-            // Optional: size check (e.g. 5MB)
-            const long maxSize = 5 * 1024 * 1024;
-            if (dto.LogoFile.Length > maxSize)
-                return BadRequest("Logo file is too large.");
-
-            // Build a safe filename and save to wwwroot/uploads/teams
-            var uploadsRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "teams");
-            Directory.CreateDirectory(uploadsRoot);
-
-            var ext = Path.GetExtension(dto.LogoFile.FileName);
-            if (string.IsNullOrEmpty(ext))
+            logoUrl = await _uploads.SaveTeamLogoAsync(dto.LogoFile, cancellationToken);
+            if (logoUrl != null)
             {
-                ext = dto.LogoFile.ContentType switch
-                {
-                    "image/png" => ".png",
-                    "image/jpeg" => ".jpg",
-                    _ => ".img"
-                };
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                logoUrl = baseUrl + logoUrl;
             }
-
-            var fileName = $"{Guid.NewGuid()}{ext}";
-            var filePath = Path.Combine(uploadsRoot, fileName);
-
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await dto.LogoFile.CopyToAsync(stream);
-            }
-
-            // Public URL (ensure your app serves static files from wwwroot)
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            logoUrl = $"{baseUrl}/uploads/teams/{Uri.EscapeDataString(fileName)}";
+        }
+        catch (ArgumentException ae)
+        {
+            return BadRequest(ae.Message);
         }
 
         var t = new MatchFlow.Domain.Entities.Team
@@ -105,13 +80,13 @@ public class TeamController : ControllerBase
         };
 
         _db.Set<MatchFlow.Domain.Entities.Team>().Add(t);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(Get), new { id = t.Id }, new TeamDto(t.Id, t.Name, t.Tag, t.OwnerUserId, t.LogoUrl, t.Bio, t.CreatedAt));
     }
 
     [HttpPut("{id:guid}")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Update(Guid id, [FromForm] UpdateTeamDto dto)
+    public async Task<IActionResult> Update(Guid id, [FromForm] UpdateTeamDto dto, CancellationToken cancellationToken)
     {
         var t = await _db.Set<Team>().FindAsync(id);
         if (t is null) return NotFound();
@@ -133,53 +108,34 @@ public class TeamController : ControllerBase
         string? newLogoUrl = null;
         if (dto.LogoFile != null && dto.LogoFile.Length > 0)
         {
-            var allowed = new[] { "image/png", "image/jpeg" };
-            if (!allowed.Contains(dto.LogoFile.ContentType))
-                return BadRequest("Only PNG and JPEG images are allowed for logo.");
-
-            const long maxSize = 5 * 1024 * 1024;
-            if (dto.LogoFile.Length > maxSize)
-                return BadRequest("Logo file is too large.");
-
-            var uploadsRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "teams");
-            Directory.CreateDirectory(uploadsRoot);
-
-            var ext = Path.GetExtension(dto.LogoFile.FileName);
-            if (string.IsNullOrEmpty(ext))
+            try
             {
-                ext = dto.LogoFile.ContentType switch
+                var saved = await _uploads.SaveTeamLogoAsync(dto.LogoFile, cancellationToken);
+                if (saved != null)
                 {
-                    "image/png" => ".png",
-                    "image/jpeg" => ".jpg",
-                    _ => ".img"
-                };
-            }
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    newLogoUrl = baseUrl + saved;
 
-            var fileName = $"{Guid.NewGuid()}{ext}";
-            var filePath = Path.Combine(uploadsRoot, fileName);
-
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await dto.LogoFile.CopyToAsync(stream);
-            }
-
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            newLogoUrl = $"{baseUrl}/uploads/teams/{Uri.EscapeDataString(fileName)}";
-
-            // remove old file if it lives in our uploads folder
-            if (!string.IsNullOrWhiteSpace(t.LogoUrl) && t.LogoUrl.Contains("/uploads/teams/"))
-            {
-                try
-                {
-                    var oldFileName = Path.GetFileName(new Uri(t.LogoUrl).LocalPath);
-                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "teams", oldFileName);
-                    if (System.IO.File.Exists(oldFilePath))
-                        System.IO.File.Delete(oldFilePath);
+                    // remove old file if it lives in our uploads folder
+                    if (!string.IsNullOrWhiteSpace(t.LogoUrl) && t.LogoUrl.Contains("/uploads/teams/"))
+                    {
+                        try
+                        {
+                            var oldFileName = Path.GetFileName(new Uri(t.LogoUrl).LocalPath);
+                            var oldFilePath = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"), "uploads", "teams", oldFileName);
+                            if (System.IO.File.Exists(oldFilePath))
+                                System.IO.File.Delete(oldFilePath);
+                        }
+                        catch
+                        {
+                            // swallow errors — don't fail the whole request if delete fails.
+                        }
+                    }
                 }
-                catch
-                {
-                    // swallow errors — don't fail the whole request if delete fails.
-                }
+            }
+            catch (ArgumentException ae)
+            {
+                return BadRequest(ae.Message);
             }
         }
 
@@ -193,7 +149,7 @@ public class TeamController : ControllerBase
         if (!string.IsNullOrWhiteSpace(dto.OwnerUserId))
             t.OwnerUserId = dto.OwnerUserId;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 }

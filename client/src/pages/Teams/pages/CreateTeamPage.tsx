@@ -1,200 +1,132 @@
-﻿import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { api } from "../../../services/api";
-import { useImagePreview } from "../hooks/useImagePreview";
-import {
-    normalizeTeamTag,
-    unwrapApiData,
-    validateLogoFile,
-    validateTeamTag,
-} from "../utils/TeamFormUtils";
-import "./teams.css";
+﻿import React, { useState, ChangeEvent, FormEvent } from 'react';
 
-type TeamDto = {
-    id: string;
-    name: string;
-    tag: string;
-    bio?: string | null;
-    logoUrl?: string | null;
-    ownerUserId: string;
-    createdAt: string;
-};
+// Simple CreateTeam page example that:
+// 1) fetches /api/auth/me to show current user
+// 2) posts form data (multipart/form-data) to /api/team to create a team
+// Uses console.log liberally so you can follow the steps in the browser devtools
 
 export default function CreateTeamPage() {
-    const nav = useNavigate();
+    const [name, setName] = useState('');
+    const [tag, setTag] = useState('');
+    const [bio, setBio] = useState('');
+    const [ownerId, setOwnerId] = useState<string | null>(null);
+    const [logo, setLogo] = useState<File | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
 
-    const [name, setName] = useState("");
-    const [tag, setTag] = useState("");
-    const [bio, setBio] = useState("");
-    const [logoFile, setLogoFile] = useState<File | null>(null);
+    // Attempt to read token from localStorage (adjust to your auth flow)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-    const previewUrl = useImagePreview(logoFile);
-
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const tagError = useMemo(() => validateTeamTag(tag), [tag]);
-
-    const canSubmit = useMemo(() => {
-        const cleanName = name.trim();
-        const cleanTag = normalizeTeamTag(tag).trim();
-        return (
-            cleanName.length >= 2 &&
-            cleanTag.length >= 2 &&
-            cleanTag.length <= 5 &&
-            !loading
-        );
-    }, [name, tag, loading]);
-
-    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setError(null);
-        const f = e.target.files && e.target.files[0];
-        if (!f) {
-            setLogoFile(null);
+    async function loadMe() {
+        console.log('[CreateTeamPage] loadMe: starting');
+        if (!token) {
+            console.log('[CreateTeamPage] no token found in localStorage');
+            setMessage('Not authenticated');
             return;
         }
 
-        const fileError = validateLogoFile(f);
-        if (fileError) {
-            setError(fileError);
-            setLogoFile(null);
-            return;
-        }
-
-        setLogoFile(f);
-    };
-
-    const onSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-
-        const cleanName = name.trim();
-        const cleanTag = normalizeTeamTag(tag).trim();
-
-        if (cleanName.length < 2) {
-            setError("Team name must be at least 2 characters.");
-            return;
-        }
-        if (cleanTag.length < 2 || cleanTag.length > 5) {
-            setError("Team tag must be 2\u20135 characters.");
-            return;
-        }
-
-        setLoading(true);
         try {
-            const form = new FormData();
-            form.append("Name", cleanName);
-            form.append("Tag", cleanTag);
-            form.append("Bio", bio.trim() ? bio.trim() : "");
-            if (logoFile) form.append("LogoFile", logoFile);
-
-            // POST to /team (singular) to match TeamController
-            const raw = await api.post<TeamDto>("/team", form, {
-                headers: { /* boundary set automatically */ },
+            const res = await fetch('/api/auth/me', {
+                headers: { Authorization: `Bearer ${token}` },
             });
+            console.log('[CreateTeamPage] /api/auth/me response', res);
+            if (!res.ok) {
+                const text = await res.text();
+                console.log('[CreateTeamPage] /api/auth/me error body', text);
+                setMessage('Failed to get current user');
+                return;
+            }
+            const data = await res.json();
+            console.log('[CreateTeamPage] /api/auth/me data', data);
+            setOwnerId(data.id as string);
+        } catch (err) {
+            console.error('[CreateTeamPage] loadMe error', err);
+            setMessage('Error fetching current user');
+        }
+    }
 
-            const created = unwrapApiData<TeamDto>(raw);
-            if (!created?.id) {
-                throw new Error("Team created but no id was returned by the API.");
+    // Run once on mount
+    React.useEffect(() => {
+        loadMe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    function onFileChange(e: ChangeEvent<HTMLInputElement>) {
+        const f = e.target.files && e.target.files[0];
+        setLogo(f ?? null);
+        console.log('[CreateTeamPage] selected file', f);
+    }
+
+    async function onSubmit(e: FormEvent) {
+        e.preventDefault();
+        console.log('[CreateTeamPage] onSubmit: building form data');
+
+        const fd = new FormData();
+        fd.append('Name', name);
+        fd.append('Tag', tag);
+        if (bio) fd.append('Bio', bio);
+        // You can either attach OwnerUserId explicitly, or rely on server-side claim resolution
+        if (ownerId) {
+            console.log('[CreateTeamPage] attaching ownerId to form data', ownerId);
+            fd.append('OwnerUserId', ownerId);
+        }
+        if (logo) fd.append('LogoFile', logo, logo.name);
+
+        try {
+            console.log('[CreateTeamPage] sending POST /api/team');
+            const res = await fetch('/api/team', {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                body: fd,
+            });
+            console.log('[CreateTeamPage] response', res);
+            const text = await res.text();
+            console.log('[CreateTeamPage] response body', text);
+            if (!res.ok) {
+                setMessage(`Failed: ${res.status} - ${text}`);
+                return;
             }
 
-            nav(`/teams/${created.id}`);
+            // try parse JSON
+            try {
+                const json = JSON.parse(text);
+                console.log('[CreateTeamPage] created team', json);
+                setMessage('Team created successfully');
+            } catch (parseErr) {
+                console.log('[CreateTeamPage] created team (non-json)', text);
+                setMessage('Team created (response not JSON)');
+            }
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to create team.");
-        } finally {
-            setLoading(false);
+            console.error('[CreateTeamPage] submit error', err);
+            setMessage('Network or unexpected error');
         }
-    };
+    }
 
     return (
-        <div className="container createTeamPage page">
-            <div className="pageHeader">
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+            <h2>Create Team</h2>
+            <p>Current owner id: {ownerId ?? 'unknown'}</p>
+            <form onSubmit={onSubmit}>
                 <div>
-                    <h1 className="pageTitle">Create team</h1>
-                    <p className="pageSubtitle">
-                        Pick a name and a short tag (2\u20135 characters). You can update details later.
-                    </p>
+                    <label>Name</label>
+                    <input value={name} onChange={e => setName(e.target.value)} required />
                 </div>
-
-                <Link className="btn btnGhost" to="/teams">
-                    Back to teams
-                </Link>
-            </div>
-
-            <div className="card pageCard">
-                {error && (
-                    <div className="formError" role="alert" aria-live="polite">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={onSubmit} className="formGrid" encType="multipart/form-data">
-                    <label className="formField">
-                        Team name
-                        <input
-                            className="input"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. MatchFlow United"
-                            required
-                            minLength={2}
-                        />
-                    </label>
-
-                    <label className="formField">
-                        Team tag (2\u20135)
-                        <input
-                            className="input"
-                            value={tag}
-                            onChange={(e) => setTag(normalizeTeamTag(e.target.value))}
-                            placeholder="ABC"
-                            maxLength={5}
-                            required
-                        />
-                        {tagError && <span className="hintError">{tagError}</span>}
-                        {!tagError && <span className="hint">Tag is <strong>case sensitive</strong>.</span>}
-                    </label>
-
-                    <label className="formField formFieldFull">
-                        Bio (optional)
-                        <textarea
-                            className="input textarea"
-                            value={bio}
-                            onChange={(e) => setBio(e.target.value)}
-                            placeholder="What is this team about?"
-                            rows={4}
-                        />
-                    </label>
-
-                    <label className="formField formFieldFull">
-                        Logo (optional) — .png or .jpg
-                        <input
-                            className="input"
-                            type="file"
-                            accept=".png,.jpg,.jpeg,image/png,image/jpeg"
-                            onChange={onFileChange}
-                        />
-
-                        {previewUrl && (
-                            <div className="logoPreview">
-                                <img src={previewUrl} alt="logo preview" />
-                            </div>
-                        )}
-
-                        <div className="hint">Tip: keep logo small. Max 2MB recommended.</div>
-                    </label>
-
-                    <div className="formActions">
-                        <button className="btn btnPrimary" type="submit" disabled={!canSubmit}>
-                            {loading ? "Creating..." : "Create team"}
-                        </button>
-
-                        <Link className="btn btnSecondary" to="/teams">
-                            Cancel
-                        </Link>
-                    </div>
-                </form>
-            </div>
+                <div>
+                    <label>Tag</label>
+                    <input value={tag} onChange={e => setTag(e.target.value)} required />
+                </div>
+                <div>
+                    <label>Bio</label>
+                    <textarea value={bio} onChange={e => setBio(e.target.value)} />
+                </div>
+                <div>
+                    <label>Logo</label>
+                    <input type="file" accept="image/png,image/jpeg" onChange={onFileChange} />
+                </div>
+                <div>
+                    <button type="submit">Create</button>
+                </div>
+            </form>
+            {message && <div style={{ marginTop: 12 }}>{message}</div>}
         </div>
     );
 }

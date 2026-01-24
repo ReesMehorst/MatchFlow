@@ -66,6 +66,11 @@ builder.Services.AddCors(opt =>
 
 builder.Services.AddControllers();
 
+// App services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<MatchFlow.Api.Services.IUploadService, MatchFlow.Api.Services.UploadService>();
+builder.Services.AddScoped<MatchFlow.Api.Services.ICurrentUserService, MatchFlow.Api.Services.CurrentUserService>();
+
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
