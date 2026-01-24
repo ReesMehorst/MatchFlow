@@ -17,3 +17,10 @@ public sealed record AuthResultDto(
     string DisplayName,
     string[] Roles
 );
+
+public sealed record MeDto(
+    string Id,
+    string Email,
+    string? DisplayName,
+    string[] Roles
+);

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -114,5 +115,32 @@ public class AuthenticationController : ControllerBase
             user.DisplayName ?? "",
             roles.ToArray()
         );
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<MeDto>> Me()
+    {
+        // UserId is stored in the JWT as sub
+        var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                     ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return Unauthorized();
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return Ok(new MeDto(
+            user.Id,
+            user.Email ?? "",
+            user.DisplayName,
+            roles.ToArray()
+        ));
     }
 }
