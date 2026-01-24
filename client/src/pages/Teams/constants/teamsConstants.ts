@@ -43,6 +43,7 @@ function toQuery(filters: TeamFilters) {
 }
 
 export const teamsApi = {
-    list: (filters: TeamFilters) => api.get<TeamListResponse>(`/teams?${toQuery(filters)}`),
-    join: (teamId: string) => api.post<void>(`/teams/${teamId}/join`),
+    // use /team (singular) to match TeamController
+    list: (filters: TeamFilters) => api.get<TeamListResponse>(`/team?${toQuery(filters)}`),
+    join: (teamId: string) => api.post<void>(`/team/${teamId}/join`),
 };

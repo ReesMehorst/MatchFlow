@@ -42,6 +42,15 @@ public class TeamController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Tag))
             return BadRequest("Name and Tag are required.");
 
+        if (string.IsNullOrWhiteSpace(dto.OwnerUserId) && User?.Identity?.IsAuthenticated == true)
+        {
+            dto.OwnerUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        }
+        if (string.IsNullOrWhiteSpace(dto.OwnerUserId))
+        {
+            return BadRequest("OwnerUserId is required.");
+        }
+
         string? logoUrl = null;
 
         if (dto.LogoFile != null && dto.LogoFile.Length > 0)
@@ -89,7 +98,7 @@ public class TeamController : ControllerBase
             Id = Guid.NewGuid(),
             Name = dto.Name,
             Tag = dto.Tag.Trim().ToUpperInvariant(),
-            OwnerUserId = dto.OwnerUserId,
+            OwnerUserId = dto.OwnerUserId!,
             LogoUrl = logoUrl,
             Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio,
             CreatedAt = DateTimeOffset.UtcNow

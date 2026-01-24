@@ -21,6 +21,7 @@ public sealed class CreateTeamDto
     [Required, StringLength(5, MinimumLength = 2)] 
     public string Tag { get; set; } = String.Empty;
     public string? Bio { get; set; }
+    [Required]
     public string? OwnerUserId { get; set; }
     public IFormFile? LogoFile { get; set; }
 }

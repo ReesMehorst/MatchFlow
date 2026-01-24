@@ -76,7 +76,7 @@ export default function CreateTeamPage() {
             return;
         }
         if (cleanTag.length < 2 || cleanTag.length > 5) {
-            setError("Team tag must be 2–5 characters.");
+            setError("Team tag must be 2\u20135 characters.");
             return;
         }
 
@@ -88,7 +88,8 @@ export default function CreateTeamPage() {
             form.append("Bio", bio.trim() ? bio.trim() : "");
             if (logoFile) form.append("LogoFile", logoFile);
 
-            const raw = await api.post<TeamDto>("/teams", form, {
+            // POST to /team (singular) to match TeamController
+            const raw = await api.post<TeamDto>("/team", form, {
                 headers: { /* boundary set automatically */ },
             });
 
@@ -111,7 +112,7 @@ export default function CreateTeamPage() {
                 <div>
                     <h1 className="pageTitle">Create team</h1>
                     <p className="pageSubtitle">
-                        Pick a name and a short tag (2–5 characters). You can update details later.
+                        Pick a name and a short tag (2\u20135 characters). You can update details later.
                     </p>
                 </div>
 
@@ -141,7 +142,7 @@ export default function CreateTeamPage() {
                     </label>
 
                     <label className="formField">
-                        Team tag (2–5)
+                        Team tag (2\u20135)
                         <input
                             className="input"
                             value={tag}
