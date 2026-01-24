@@ -1,4 +1,6 @@
-﻿import React, { useState, ChangeEvent, FormEvent } from 'react';
+﻿import React from 'react';
+import { api } from '../../../services/api';
+import { useAuth } from '../../../context/useAuth';
 
 // Simple CreateTeam page example that:
 // 1) fetches /api/auth/me to show current user
@@ -6,57 +8,51 @@
 // Uses console.log liberally so you can follow the steps in the browser devtools
 
 export default function CreateTeamPage() {
-    const [name, setName] = useState('');
-    const [tag, setTag] = useState('');
-    const [bio, setBio] = useState('');
-    const [ownerId, setOwnerId] = useState<string | null>(null);
-    const [logo, setLogo] = useState<File | null>(null);
-    const [message, setMessage] = useState<string | null>(null);
+    const [name, setName] = React.useState('');
+    const [tag, setTag] = React.useState('');
+    const [bio, setBio] = React.useState('');
+    const [ownerId, setOwnerId] = React.useState<string | null>(null);
+    const [logo, setLogo] = React.useState<File | null>(null);
+    const [message, setMessage] = React.useState<string | null>(null);
 
-    // Attempt to read token from localStorage (adjust to your auth flow)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // Token is stored by AuthProvider under "mf_token"; prefer context when available
+    const auth = useAuth();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('mf_token') : null;
 
     async function loadMe() {
         console.log('[CreateTeamPage] loadMe: starting');
-        if (!token) {
-            console.log('[CreateTeamPage] no token found in localStorage');
-            setMessage('Not authenticated');
+        // If context has user, use it
+        if (auth?.user?.id) {
+            console.log('[CreateTeamPage] auth context user present', auth.user.id);
+            setOwnerId(auth.user.id);
             return;
         }
-
+        console.log('[CreateTeamPage] token present?', !!token, 'API_URL=', (import.meta.env.VITE_API_URL ?? 'default'));
         try {
-            const res = await fetch('/api/auth/me', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            console.log('[CreateTeamPage] /api/auth/me response', res);
-            if (!res.ok) {
-                const text = await res.text();
-                console.log('[CreateTeamPage] /api/auth/me error body', text);
-                setMessage('Failed to get current user');
-                return;
-            }
-            const data = await res.json();
+            console.log('[CreateTeamPage] calling api.get("/auth/me") to resolve current user');
+            const data = await api.get<{ id: string }>('/auth/me');
             console.log('[CreateTeamPage] /api/auth/me data', data);
-            setOwnerId(data.id as string);
+            if (data?.id) setOwnerId(data.id as string);
+            else setMessage('Authenticated but no user id returned');
         } catch (err) {
             console.error('[CreateTeamPage] loadMe error', err);
             setMessage('Error fetching current user');
         }
     }
 
-    // Run once on mount
+    // Run on mount and when auth.user changes
     React.useEffect(() => {
         loadMe();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [auth?.user?.id]);
 
-    function onFileChange(e: ChangeEvent<HTMLInputElement>) {
+    function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const f = e.target.files && e.target.files[0];
         setLogo(f ?? null);
         console.log('[CreateTeamPage] selected file', f);
     }
 
-    async function onSubmit(e: FormEvent) {
+    async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
         console.log('[CreateTeamPage] onSubmit: building form data');
 
@@ -72,32 +68,13 @@ export default function CreateTeamPage() {
         if (logo) fd.append('LogoFile', logo, logo.name);
 
         try {
-            console.log('[CreateTeamPage] sending POST /api/team');
-            const res = await fetch('/api/team', {
-                method: 'POST',
-                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                body: fd,
-            });
-            console.log('[CreateTeamPage] response', res);
-            const text = await res.text();
-            console.log('[CreateTeamPage] response body', text);
-            if (!res.ok) {
-                setMessage(`Failed: ${res.status} - ${text}`);
-                return;
-            }
-
-            // try parse JSON
-            try {
-                const json = JSON.parse(text);
-                console.log('[CreateTeamPage] created team', json);
-                setMessage('Team created successfully');
-            } catch (parseErr) {
-                console.log('[CreateTeamPage] created team (non-json)', text);
-                setMessage('Team created (response not JSON)');
-            }
+            console.log('[CreateTeamPage] sending POST /team via api.post');
+            const created = await api.post('/team', fd as unknown as FormData);
+            console.log('[CreateTeamPage] created team', created);
+            setMessage('Team created successfully');
         } catch (err) {
             console.error('[CreateTeamPage] submit error', err);
-            setMessage('Network or unexpected error');
+            setMessage(`Network or unexpected error: ${String(err)}`);
         }
     }
 
