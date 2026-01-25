@@ -1,4 +1,12 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "https://localhost:5001/api";
+// Allow an explicit runtime override via globalThis.__MF_API_URL (useful during dev)
+// Fallback to the local API address used by the ASP.NET project.
+let API_URL = (globalThis as any).__MF_API_URL as string | undefined;
+API_URL = API_URL ?? "https://localhost:5001/api";
+if (!API_URL.endsWith("/api")) {
+    // allow both forms: https://host and https://host/api -> normalize to include /api
+    if (API_URL.endsWith("/")) API_URL = API_URL + "api";
+    else API_URL = API_URL + "/api";
+}
 
 function getToken(): string | null {
     return localStorage.getItem("mf_token");
@@ -58,21 +66,62 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         ...(body !== undefined ? { body } : {}),
     };
 
-    const res = await fetch(`${API_URL}${path}`, fetchOptions);
+    // Try fetch and on network error attempt a non-https localhost fallback
+    let res: Response;
+    try {
+        res = await fetch(`${API_URL}${path}`, fetchOptions);
+    } catch (err) {
+        // If the configured API is https localhost try http fallback (common dev setup)
+        if (API_URL.startsWith("https://localhost")) {
+            try {
+                const fallback = API_URL.replace("https://", "http://");
+                res = await fetch(`${fallback}${path}`, fetchOptions);
+            } catch (err2) {
+                throw new Error(
+                    `Network error while contacting API (tried ${API_URL} and fallback): ${
+                        (err as Error)?.message ?? String(err)
+                    }`
+                );
+            }
+        } else {
+            throw new Error(`Network error while contacting API: ${(err as Error)?.message ?? String(err)}`);
+        }
+    }
 
     const text = await res.text();
     const data = text ? tryParseJson(text) : null;
 
     if (!res.ok) {
-        // Prefer explicit, typed checks over `any`.
+        // If the server returned a plain string payload use that
         if (typeof data === "string") {
-            throw new Error(data);
+            // Avoid showing raw HTML error pages to the user
+            const asStr = data.trim();
+            if (asStr.startsWith("<")) {
+                throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+            }
+            throw new Error(asStr);
         }
 
+        // Handle typical ASP.NET ProblemDetails / validation shapes
         if (isRecord(data)) {
-            const maybeMessage = data["message"];
-            if (typeof maybeMessage === "string") {
-                throw new Error(maybeMessage);
+            const candidates = ["message", "title", "detail", "error"];
+            for (const key of candidates) {
+                const v = data[key];
+                if (typeof v === "string" && v.length > 0) {
+                    throw new Error(v);
+                }
+            }
+
+            // Validation errors often come under `errors` as an object
+            const maybeErrors = data["errors"];
+            if (isRecord(maybeErrors)) {
+                const parts: string[] = [];
+                for (const k of Object.keys(maybeErrors)) {
+                    const val = maybeErrors[k];
+                    if (Array.isArray(val)) parts.push(`${k}: ${val.join(", ")}`);
+                    else if (typeof val === "string") parts.push(`${k}: ${val}`);
+                }
+                if (parts.length) throw new Error(parts.join("; "));
             }
         }
 

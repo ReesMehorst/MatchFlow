@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from "react";
 
 export function useImagePreview(file: File | null) {
-    // Create object URL synchronously in useMemo so no setState is required in an effect.
+    // Create object URL synchroon zodat setState niet nodig is.
     const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
-    // Revoke when the URL changes / on unmount.
+    // revoked wanneer component unmount of file verandert
     useEffect(() => {
         return () => {
             if (url) URL.revokeObjectURL(url);

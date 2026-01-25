@@ -34,11 +34,11 @@ export function useTeams(initial?: TeamFilters) {
             setLoading(true);
             setError(null);
             try {
-                // fetch full list from compatibility endpoint
+                // fetch alle teams
                 const res = await teamsApi.list();
-                // Apply client-side filters
                 let items = res.items ?? [];
 
+                // filteren
                 if (stableFilters.search) {
                     const s = stableFilters.search.toLowerCase();
                     items = items.filter((i) => i.name.toLowerCase().includes(s));
@@ -59,7 +59,7 @@ export function useTeams(initial?: TeamFilters) {
                     items = items.filter((i) => i.memberCount <= max);
                 }
 
-                // Sort
+                // sorteren
                 items = (stableFilters.sort ?? 'members_desc') === 'members_desc'
                     ? items.sort((a, b) => b.memberCount - a.memberCount || a.name.localeCompare(b.name))
                     : (stableFilters.sort ?? 'members_desc') === 'members_asc'
