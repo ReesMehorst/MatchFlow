@@ -143,4 +143,27 @@ public class AuthenticationController : ControllerBase
             roles.ToArray()
         ));
     }
+
+    [Authorize]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        // Find the target user
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        // Caller must be either the user themselves or an admin
+        var callerId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isAdmin = User.IsInRole("Admin");
+        if (!isAdmin && !string.Equals(callerId, id, StringComparison.OrdinalIgnoreCase))
+            return Forbid();
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors.Select(e => e.Description));
+        }
+
+        return NoContent();
+    }
 }

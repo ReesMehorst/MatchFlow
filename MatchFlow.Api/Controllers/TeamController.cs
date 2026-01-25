@@ -296,4 +296,43 @@ public class TeamController : ControllerBase
             .ToListAsync();
         return Ok(fixtures);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var t = await _db.Set<Team>().FindAsync(new object[] { id }, cancellationToken);
+        if (t is null) return NotFound();
+
+        // Only allow owner or admin to delete a team
+        var userId = _currentUser.GetUserId();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+        if (!string.Equals(t.OwnerUserId, userId, StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin"))
+            return Forbid();
+
+        // Remove dependent entities to avoid FK issues
+        var members = _db.TeamMembers.Where(tm => tm.TeamId == id);
+        _db.TeamMembers.RemoveRange(members);
+
+        var fixtures = _db.Set<Fixture>().Where(f => f.TeamAId == id || f.TeamBId == id);
+        _db.Set<Fixture>().RemoveRange(fixtures);
+
+        // Remove uploaded logo file in our uploads folder
+        if (!string.IsNullOrWhiteSpace(t.LogoUrl) && t.LogoUrl.Contains("/uploads/teams/"))
+        {
+            try
+            {
+                var fileName = Path.GetFileName(new Uri(t.LogoUrl).LocalPath);
+                var filePath = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot"), "uploads", "teams", fileName);
+                if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
+            }
+            catch
+            {
+                // swallow error if it fails
+            }
+        }
+
+        _db.Set<Team>().Remove(t);
+        await _db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
 }

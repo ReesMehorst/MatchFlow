@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { teamsApi, type TeamDto, type TeamMemberDto, type TeamMatch } from "../constants/teamsConstants";
+import { teamsApi, type TeamDto, type TeamMemberDto/*, type TeamMatch */} from "../constants/teamsConstants";
 import "./teams.css";
 
 export default function TeamPage() {
   const { id } = useParams<{ id: string }>();
   const [team, setTeam] = useState<TeamDto | null>(null);
   const [members, setMembers] = useState<TeamMemberDto[]>([]);
-  const [matches, setMatches] = useState<TeamMatch[]>([]); // error want nog niet gebruikt
+  //const [matches, setMatches] = useState<TeamMatch[]>([]); // error want nog niet gebruikt
   const [tab, setTab] = useState<"overview" | "members" | "matches">("overview");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +24,8 @@ export default function TeamPage() {
         // Fetcht alle members en filtert op teamId (endpoint maken bij /TeamMember?)
         const allMembers = await teamsApi.getMembers();
         setMembers(allMembers.filter((m) => m.teamId === id));
-        const m = await teamsApi.getMatches(id);
-        setMatches(m);
+        //const m = await teamsApi.getMatches(id);
+        //setMatches(m);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load team");
       } finally {
