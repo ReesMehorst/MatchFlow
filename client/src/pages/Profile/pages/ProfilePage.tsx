@@ -1,4 +1,4 @@
-import { useProfile } from "../hooks/useProfile";
+﻿import { useProfile } from "../hooks/useProfile";
 import { AccountForm } from "../components/AccountForm";
 import { JoinedTeams } from "../components/JoinedTeams";
 import { DangerZone } from "../components/DangerZone";
@@ -6,7 +6,7 @@ import { DangerZone } from "../components/DangerZone";
 export default function ProfilePage() {
     const { user, setUser, loading } = useProfile();
 
-    if (loading) return <div className="container">Laden�</div>;
+    if (loading) return <div className="container">Crunching your data…</div>;
     if (!user) return null;
 
     return (
@@ -19,13 +19,13 @@ export default function ProfilePage() {
             <JoinedTeams />
 
             <section className="card" style={{ padding: 24, opacity: 0.6 }}>
-                <h2>Je posts</h2>
-                <p>Komt later.</p>
+                <h2>Your posts</h2>
+                <p>Soon to come.</p>
             </section>
 
             <section className="card" style={{ padding: 24, opacity: 0.6 }}>
-                <h2>Je comments</h2>
-                <p>Komt later.</p>
+                <h2>Your comments</h2>
+                <p>Soon to come.</p>
             </section>
 
             <DangerZone />

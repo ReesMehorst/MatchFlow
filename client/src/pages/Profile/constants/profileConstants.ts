@@ -1,4 +1,4 @@
-import { api } from "../../../services/api";
+﻿import { api } from "../../../services/api";
 
 export type UserProfile = {
     id: string;
@@ -26,10 +26,10 @@ export const updateProfile = (data: {
     email: string;
     password?: string;
 }) =>
-    api.put("/users/me", data);
+    api.put("/auth/me", data);
 
 export const deleteProfile = () =>
-    api.del("/users/me");
+    api.del("/auth/{id}");
 
 export const getJoinedTeams = () =>
     api.get<Team[]>("/teams/joined");
