@@ -3,7 +3,6 @@ using System;
 namespace MatchFlow.Api.Dtos;
 
 public record TeamMemberDto(
-    Guid Id, 
     Guid TeamId, 
     string UserId, 
     string Role, 

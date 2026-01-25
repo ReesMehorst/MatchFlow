@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using MatchFlow.Infrastructure.DBContext;
 using MatchFlow.Domain.Entities;
@@ -169,6 +170,17 @@ public class TeamController : ControllerBase
         };
 
         _db.Set<MatchFlow.Domain.Entities.Team>().Add(t);
+
+        // Ensure the owner is also added as a team member so member counts include owner
+        var ownerMember = new TeamMember
+        {
+            TeamId = t.Id,
+            UserId = t.OwnerUserId,
+            Role = "Owner",
+            JoinedAt = DateTimeOffset.UtcNow
+        };
+        _db.TeamMembers.Add(ownerMember);
+
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(Get), new { id = t.Id }, new TeamDto(t.Id, t.Name, t.Tag, t.OwnerUserId, t.LogoUrl, t.Bio, t.CreatedAt));
     }
@@ -268,9 +280,44 @@ public class TeamController : ControllerBase
     {
         var members = await _db.Set<TeamMember>()
             .Where(m => m.TeamId == id)
-            .Select(tm => new TeamMemberDto(tm.Id, tm.TeamId, tm.UserId, tm.Role, tm.JoinedAt, tm.LeftAt))
+            .Select(tm => new TeamMemberDto(
+                tm.TeamId, 
+                tm.UserId, 
+                tm.Role, 
+                tm.JoinedAt, 
+                tm.LeftAt
+            ))
             .ToListAsync();
         return Ok(members);
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/join")]
+    public async Task<IActionResult> JoinTeam(Guid id)
+    {
+        var userId = _currentUser.GetUserId();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+
+        // ensure team exists
+        var team = await _db.Set<Team>().FindAsync(id);
+        if (team is null) return NotFound();
+
+        // Prevent duplicate active membership
+        var existing = await _db.TeamMembers.FirstOrDefaultAsync(tm => tm.TeamId == id && tm.UserId == userId && tm.LeftAt == null);
+        if (existing != null) return Conflict("Already a member");
+
+        var member = new TeamMember
+        {
+            TeamId = id,
+            UserId = userId,
+            Role = "Member",
+            JoinedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.TeamMembers.Add(member);
+        await _db.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetMembers), new TeamMemberDto(member.TeamId, member.UserId, member.Role, member.JoinedAt, member.LeftAt));
     }
 
     [HttpGet("{id:guid}/matches")]

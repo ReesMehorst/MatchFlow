@@ -39,9 +39,16 @@ public sealed class MatchFlowDbContext : IdentityDbContext<ApplicationUser>
             .HasMaxLength(5)
             .IsRequired();
 
-        // TeamMember: ensure single active membership per (Team,User)
+        // TeamMember: use a composite primary key of (TeamId, UserId)
+        // This ensures a single canonical membership record per user/team.
         modelBuilder.Entity<TeamMember>()
-            .HasIndex(tm => new { tm.TeamId, tm.UserId, tm.LeftAt });
+            .HasKey(tm => new { tm.TeamId, tm.UserId });
+
+        modelBuilder.Entity<TeamMember>()
+            .HasOne(tm => tm.Team)
+            .WithMany(t => t.Members)
+            .HasForeignKey(tm => tm.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // TeamGame composite PK
         modelBuilder.Entity<TeamGame>()
