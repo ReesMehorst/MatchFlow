@@ -60,7 +60,7 @@ export default function CreateTeamPage() {
                 <div>
                     <h1 className="pageTitle">Create team</h1>
                     <p className="pageSubtitle">
-                        Set up a new team with a name, tag, and optional logo.
+                        Set up a new team with a name, tag, bio and logo.
                     </p>
                 </div>
             </div>

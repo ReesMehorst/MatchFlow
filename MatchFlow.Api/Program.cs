@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Identity.UI;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);   
 
 // Db
 builder.Services.AddDbContext<MatchFlowDbContext>(opt =>
