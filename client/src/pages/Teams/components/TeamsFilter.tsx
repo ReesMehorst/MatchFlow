@@ -1,4 +1,5 @@
-﻿import type { TeamFilters as Filters } from "../constants/teamsConstants";
+﻿import React from "react";
+import type { TeamFilters as Filters } from "../constants/teamsConstants";
 
 type Sort =
     | "created_desc"
@@ -17,6 +18,31 @@ function sanitizeTag(raw: string) {
 }
 
 export default function TeamsFilters({ filters, setFilters, onReset }: Props) {
+    const [local, setLocal] = React.useState<Filters>({
+        search: filters.search ?? "",
+        tag: filters.tag ?? "",
+        minMembers: filters.minMembers ?? "",
+        maxMembers: filters.maxMembers ?? "",
+        sort: filters.sort ?? "members_desc",
+        page: filters.page ?? 1,
+        pageSize: filters.pageSize ?? 20,
+    });
+
+    React.useEffect(() => {
+        setLocal((l) => ({ ...l, search: filters.search ?? "", tag: filters.tag ?? "", sort: filters.sort ?? "members_desc" }));
+    }, [filters.search, filters.tag, filters.sort]);
+
+    function apply() {
+        setFilters({
+            search: local.search,
+            tag: local.tag,
+            minMembers: local.minMembers,
+            maxMembers: local.maxMembers,
+            sort: local.sort,
+            page: 1,
+        });
+    }
+
     return (
         <section className="teamsFilters card" aria-label="Team filters">
             <div className="filterRow">
@@ -24,8 +50,8 @@ export default function TeamsFilters({ filters, setFilters, onReset }: Props) {
                     Name / Search
                     <input
                         className="input"
-                        value={filters.search ?? ""}
-                        onChange={(e) => setFilters({ search: e.target.value, page: 1 })}
+                        value={local.search ?? ""}
+                        onChange={(e) => setLocal({ ...local, search: e.target.value })}
                         placeholder="Search by team name..."
                     />
                 </label>
@@ -34,8 +60,8 @@ export default function TeamsFilters({ filters, setFilters, onReset }: Props) {
                     Team tag (2–5)
                     <input
                         className="input"
-                        value={filters.tag ?? ""}
-                        onChange={(e) => setFilters({ tag: sanitizeTag(e.target.value), page: 1 })}
+                        value={local.tag ?? ""}
+                        onChange={(e) => setLocal({ ...local, tag: sanitizeTag(e.target.value) })}
                         placeholder="ABC"
                         maxLength={5}
                     />
@@ -45,8 +71,8 @@ export default function TeamsFilters({ filters, setFilters, onReset }: Props) {
                     Sort
                     <select
                         className="input"
-                        value={filters.sort ?? "members_desc"}
-                        onChange={(e) => setFilters({ sort: e.target.value as Sort, page: 1 })}
+                        value={local.sort ?? "members_desc"}
+                        onChange={(e) => setLocal({ ...local, sort: e.target.value as Sort })}
                     >
                         <option value="members_desc">Members (high → low)</option>
                         <option value="members_asc">Members (low → high)</option>
@@ -63,13 +89,8 @@ export default function TeamsFilters({ filters, setFilters, onReset }: Props) {
                         className="input"
                         type="number"
                         min={0}
-                        value={filters.minMembers ?? ""}
-                        onChange={(e) =>
-                            setFilters({
-                                minMembers: e.target.value === "" ? "" : Number(e.target.value),
-                                page: 1,
-                            })
-                        }
+                        value={local.minMembers ?? ""}
+                        onChange={(e) => setLocal({ ...local, minMembers: e.target.value === "" ? "" : Number(e.target.value) })}
                         placeholder="0"
                     />
                 </label>
@@ -80,18 +101,16 @@ export default function TeamsFilters({ filters, setFilters, onReset }: Props) {
                         className="input"
                         type="number"
                         min={0}
-                        value={filters.maxMembers ?? ""}
-                        onChange={(e) =>
-                            setFilters({
-                                maxMembers: e.target.value === "" ? "" : Number(e.target.value),
-                                page: 1,
-                            })
-                        }
+                        value={local.maxMembers ?? ""}
+                        onChange={(e) => setLocal({ ...local, maxMembers: e.target.value === "" ? "" : Number(e.target.value) })}
                         placeholder="999"
                     />
                 </label>
 
                 <div className="filterActions">
+                    <button className="btn btnSecondary" type="button" onClick={apply}>
+                        Search
+                    </button>
                     <button className="btn btnSecondary" type="button" onClick={onReset}>
                         Reset
                     </button>
