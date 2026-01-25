@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import RequireUnauth from "./components/RequireUnauth";
 import TeamsPage from "./pages/Teams/pages/TeamsPage";
 import CreateTeamPage from "./pages/Teams/pages/CreateTeamPage";
+import TeamPage from "./pages/Teams/pages/TeamPage";
 
 export default function App() {
     return (
@@ -31,6 +32,7 @@ export default function App() {
                     />
                     <Route path="/teams" element={<TeamsPage />} />
                     <Route path="/teams/create" element={<CreateTeamPage />} />
+                    <Route path="/teams/:id" element={<TeamPage />} />
                 </Route>
             </Routes>
         </BrowserRouter>

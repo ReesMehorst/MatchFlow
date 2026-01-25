@@ -39,7 +39,7 @@ public class TeamController : ControllerBase
 
         var currentUserId = _currentUser.GetUserId();
 
-        // Use a teams query and apply filters directly on the Team entity, then compute member counts via group join
+        // Use a teams query and apply filters directly on the Team entity
         var teamsQ = _db.Teams.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -54,7 +54,7 @@ public class TeamController : ControllerBase
 
         if (minMembers.HasValue || maxMembers.HasValue)
         {
-            // we'll apply member count filtering after projection when we have counts
+            // LATER
         }
 
         var membersActive = _db.TeamMembers.Where(tm => tm.LeftAt == null);
@@ -86,7 +86,6 @@ public class TeamController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            // use EF.Functions.Like to allow SQL translation and avoid client-side evaluation
             q = q.Where(x => EF.Functions.Like(x.Name, $"%{search}%"));
         }
 
@@ -181,20 +180,19 @@ public class TeamController : ControllerBase
         var t = await _db.Set<Team>().FindAsync(id);
         if (t is null) return NotFound();
 
-        // Basic validation (additional model validation via [Required] on DTO)
         if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Tag))
             return BadRequest("Name and Tag are required.");
 
-        // Optional: ensure owner is present (either from DTO or from authenticated user)
+        // ensure owner is present (either from DTO or from authenticated user)
         if (string.IsNullOrWhiteSpace(dto.OwnerUserId) && User?.Identity?.IsAuthenticated == true)
         {
-            // example: get owner id from claims if you prefer that flow
+            // get owner id from claims if you prefer that flow
             var uid = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (!string.IsNullOrWhiteSpace(uid))
                 dto.OwnerUserId = uid;
         }
 
-        // Handle new logo upload (if provided)
+        // Handle new logo upload
         string? newLogoUrl = null;
         if (dto.LogoFile != null && dto.LogoFile.Length > 0)
         {
@@ -218,7 +216,7 @@ public class TeamController : ControllerBase
                         }
                         catch
                         {
-                            // swallow errors — don't fail the whole request if delete fails.
+                            // swallow errors
                         }
                     }
                 }
@@ -229,13 +227,11 @@ public class TeamController : ControllerBase
             }
         }
 
-        // Apply updates
         t.Name = dto.Name;
         t.Tag = dto.Tag.Trim().ToUpperInvariant();
         t.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio;
         if (newLogoUrl != null) t.LogoUrl = newLogoUrl;
 
-        // If you want to enforce OwnerUserId not empty in DB:
         if (!string.IsNullOrWhiteSpace(dto.OwnerUserId))
             t.OwnerUserId = dto.OwnerUserId;
 
@@ -243,7 +239,6 @@ public class TeamController : ControllerBase
         return NoContent();
     }
 
-    // Compatibility endpoint: return all teams as a simple paged response (no filters).
     [HttpGet("list")]
     public async Task<ActionResult<PagedResult<TeamListItemDto>>> ListAll()
     {
@@ -266,5 +261,39 @@ public class TeamController : ControllerBase
 
         var paged = new PagedResult<TeamListItemDto>(items, 1, items.Count, items.Count);
         return Ok(paged);
+    }
+
+    [HttpGet("{id:guid}/members")]
+    public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetMembers(Guid id)
+    {
+        var members = await _db.Set<TeamMember>()
+            .Where(m => m.TeamId == id)
+            .Select(tm => new TeamMemberDto(tm.Id, tm.TeamId, tm.UserId, tm.Role, tm.JoinedAt, tm.LeftAt))
+            .ToListAsync();
+        return Ok(members);
+    }
+
+    [HttpGet("{id:guid}/matches")]
+    public async Task<ActionResult<IEnumerable<FixtureDto>>> GetTeamFixtures(Guid id)
+    {
+        var fixtures = await _db.Set<Fixture>()
+            .Where(f => f.TeamAId == id || f.TeamBId == id)
+            .Select(f => new FixtureDto(
+                f.Id, 
+                f.TournamentId,
+                f.GameId,
+                f.TeamAId,
+                f.TeamBId,
+                f.TeamAScore, 
+                f.TeamBScore, 
+                f.StartAt,
+                f.EndAt,
+                f.Status,
+                f.MatchType,
+                f.Notes,
+                f.CreatedByUserId
+            ))
+            .ToListAsync();
+        return Ok(fixtures);
     }
 }
