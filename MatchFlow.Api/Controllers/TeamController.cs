@@ -317,7 +317,7 @@ public class TeamController : ControllerBase
         _db.TeamMembers.Add(member);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetMembers), new TeamMemberDto(member.TeamId, member.UserId, member.Role, member.JoinedAt, member.LeftAt));
+        return Ok();
     }
 
     [HttpGet("{id:guid}/matches")]
