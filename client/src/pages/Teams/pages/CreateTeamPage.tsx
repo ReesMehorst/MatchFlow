@@ -1,198 +1,146 @@
-﻿import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+﻿import React from "react";
 import { api } from "../../../services/api";
-import { useImagePreview } from "../hooks/useImagePreview";
-import {
-    normalizeTeamTag,
-    unwrapApiData,
-    validateLogoFile,
-    validateTeamTag,
-} from "../utils/TeamFormUtils";
-import "./teams.css";
-
-type TeamDto = {
-    id: string;
-    name: string;
-    tag: string;
-    bio?: string | null;
-    logoUrl?: string | null;
-    ownerUserId: string;
-    createdAt: string;
-};
+import { useAuth } from "../../../context/useAuth";
 
 export default function CreateTeamPage() {
-    const nav = useNavigate();
+    const [name, setName] = React.useState("");
+    const [tag, setTag] = React.useState("");
+    const [bio, setBio] = React.useState("");
+    const [ownerId, setOwnerId] = React.useState<string | null>(null);
+    const [logo, setLogo] = React.useState<File | null>(null);
+    const [message, setMessage] = React.useState<string | null>(null);
 
-    const [name, setName] = useState("");
-    const [tag, setTag] = useState("");
-    const [bio, setBio] = useState("");
-    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const auth = useAuth();
 
-    const previewUrl = useImagePreview(logoFile);
-
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const tagError = useMemo(() => validateTeamTag(tag), [tag]);
-
-    const canSubmit = useMemo(() => {
-        const cleanName = name.trim();
-        const cleanTag = normalizeTeamTag(tag).trim();
-        return (
-            cleanName.length >= 2 &&
-            cleanTag.length >= 2 &&
-            cleanTag.length <= 5 &&
-            !loading
-        );
-    }, [name, tag, loading]);
-
-    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setError(null);
-        const f = e.target.files && e.target.files[0];
-        if (!f) {
-            setLogoFile(null);
+    async function loadMe() {
+        if (auth?.user?.id) {
+            setOwnerId(auth.user.id);
             return;
         }
-
-        const fileError = validateLogoFile(f);
-        if (fileError) {
-            setError(fileError);
-            setLogoFile(null);
-            return;
-        }
-
-        setLogoFile(f);
-    };
-
-    const onSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-
-        const cleanName = name.trim();
-        const cleanTag = normalizeTeamTag(tag).trim();
-
-        if (cleanName.length < 2) {
-            setError("Team name must be at least 2 characters.");
-            return;
-        }
-        if (cleanTag.length < 2 || cleanTag.length > 5) {
-            setError("Team tag must be 2–5 characters.");
-            return;
-        }
-
-        setLoading(true);
         try {
-            const form = new FormData();
-            form.append("Name", cleanName);
-            form.append("Tag", cleanTag);
-            form.append("Bio", bio.trim() ? bio.trim() : "");
-            if (logoFile) form.append("LogoFile", logoFile);
-
-            const raw = await api.post<TeamDto>("/teams", form, {
-                headers: { /* boundary set automatically */ },
-            });
-
-            const created = unwrapApiData<TeamDto>(raw);
-            if (!created?.id) {
-                throw new Error("Team created but no id was returned by the API.");
-            }
-
-            nav(`/teams/${created.id}`);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to create team.");
-        } finally {
-            setLoading(false);
+            const data = await api.get<{ id: string }>("/auth/me");
+            if (data?.id) setOwnerId(data.id);
+            else setMessage("Authenticated but no user id returned");
+        } catch {
+            setMessage("Error fetching current user");
         }
-    };
+    }
+
+    React.useEffect(() => {
+        loadMe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [auth?.user?.id]);
+
+    function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const f = e.target.files?.[0] ?? null;
+        setLogo(f);
+    }
+
+    async function onSubmit(e: React.FormEvent) {
+        e.preventDefault();
+
+        const fd = new FormData();
+        fd.append("Name", name);
+        fd.append("Tag", tag);
+        if (bio) fd.append("Bio", bio);
+        if (ownerId) fd.append("OwnerUserId", ownerId);
+        if (logo) fd.append("LogoFile", logo, logo.name);
+
+        try {
+            await api.post("/team", fd as unknown as FormData);
+            setMessage("Team created successfully");
+        } catch (err) {
+            setMessage(`Network or unexpected error: ${String(err)}`);
+        }
+    }
 
     return (
-        <div className="container createTeamPage page">
+        <div className="container page">
             <div className="pageHeader">
                 <div>
                     <h1 className="pageTitle">Create team</h1>
                     <p className="pageSubtitle">
-                        Pick a name and a short tag (2–5 characters). You can update details later.
+                        Set up a new team with a name, tag, and optional logo.
                     </p>
                 </div>
-
-                <Link className="btn btnGhost" to="/teams">
-                    Back to teams
-                </Link>
             </div>
 
-            <div className="card pageCard">
-                {error && (
-                    <div className="formError" role="alert" aria-live="polite">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={onSubmit} className="formGrid" encType="multipart/form-data">
-                    <label className="formField">
-                        Team name
+            <div className="pageCard card">
+                <form className="formGrid" onSubmit={onSubmit}>
+                    <div className="formField">
+                        <label htmlFor="name">Team name</label>
                         <input
+                            id="name"
                             className="input"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. MatchFlow United"
                             required
-                            minLength={2}
                         />
-                    </label>
+                    </div>
 
-                    <label className="formField">
-                        Team tag (2–5)
+                    <div className="formField">
+                        <label htmlFor="tag">Team tag (2–5)</label>
                         <input
+                            id="tag"
                             className="input"
                             value={tag}
-                            onChange={(e) => setTag(normalizeTeamTag(e.target.value))}
-                            placeholder="ABC"
+                            onChange={(e) => setTag(e.target.value)}
                             maxLength={5}
                             required
                         />
-                        {tagError && <span className="hintError">{tagError}</span>}
-                        {!tagError && <span className="hint">Tag is <strong>case sensitive</strong>.</span>}
-                    </label>
+                    </div>
 
-                    <label className="formField formFieldFull">
-                        Bio (optional)
+                    <div className="formField formFieldFull">
+                        <label htmlFor="bio">Bio</label>
                         <textarea
+                            id="bio"
                             className="input textarea"
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
-                            placeholder="What is this team about?"
-                            rows={4}
                         />
-                    </label>
+                    </div>
 
-                    <label className="formField formFieldFull">
-                        Logo (optional) — .png or .jpg
+                    <div className="formField formFieldFull">
+                        <label htmlFor="logo">Team logo</label>
                         <input
+                            id="logo"
                             className="input"
                             type="file"
-                            accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                            accept="image/png,image/jpeg"
                             onChange={onFileChange}
                         />
-
-                        {previewUrl && (
+                        {logo && (
                             <div className="logoPreview">
-                                <img src={previewUrl} alt="logo preview" />
+                                <img src={URL.createObjectURL(logo)} alt="Logo preview" />
                             </div>
                         )}
+                    </div>
 
-                        <div className="hint">Tip: keep logo small. Max 2MB recommended.</div>
-                    </label>
-
-                    <div className="formActions">
-                        <button className="btn btnPrimary" type="submit" disabled={!canSubmit}>
-                            {loading ? "Creating..." : "Create team"}
+                    <div className="formActions formFieldFull">
+                        <button type="submit" className="btn btnPrimary">
+                            Create team
                         </button>
-
-                        <Link className="btn btnSecondary" to="/teams">
-                            Cancel
-                        </Link>
+                        <button
+                            type="reset"
+                            className="btn btnSecondary"
+                            onClick={() => {
+                                setName("");
+                                setTag("");
+                                setBio("");
+                                setLogo(null);
+                                setMessage(null);
+                            }}
+                        >
+                            Reset
+                        </button>
                     </div>
                 </form>
+
+                {message && (
+                    <div className="pageMessage" role="status">
+                        {message}
+                    </div>
+                )}
             </div>
         </div>
     );

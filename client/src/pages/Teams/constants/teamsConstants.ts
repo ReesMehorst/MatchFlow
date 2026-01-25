@@ -27,22 +27,8 @@ export type TeamFilters = {
     pageSize?: number;
 };
 
-function toQuery(filters: TeamFilters) {
-    const p = new URLSearchParams();
-
-    if (filters.search) p.set("search", filters.search);
-    if (filters.tag) p.set("tag", filters.tag);
-    if (filters.minMembers !== "" && filters.minMembers != null) p.set("minMembers", String(filters.minMembers));
-    if (filters.maxMembers !== "" && filters.maxMembers != null) p.set("maxMembers", String(filters.maxMembers));
-    if (filters.sort) p.set("sort", filters.sort);
-
-    p.set("page", String(filters.page ?? 1));
-    p.set("pageSize", String(filters.pageSize ?? 20));
-
-    return p.toString();
-}
-
 export const teamsApi = {
-    list: (filters: TeamFilters) => api.get<TeamListResponse>(`/teams?${toQuery(filters)}`),
-    join: (teamId: string) => api.post<void>(`/teams/${teamId}/join`),
+    // Fetch all teams (compatibility endpoint) and let client apply filters
+    list: () => api.get<TeamListResponse>(`/team/list`),
+    join: (teamId: string) => api.post<void>(`/team/${teamId}/join`),
 };

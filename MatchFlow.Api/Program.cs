@@ -58,13 +58,22 @@ builder.Services.AddAuthorization();
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("client", p =>
-        p.WithOrigins("http://localhost:5173")
+        p.WithOrigins("http://localhost:5173", "https://localhost:5173")
          .AllowAnyHeader()
          .AllowAnyMethod()
          .AllowCredentials());
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
+
+// App services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<MatchFlow.Api.Services.IUploadService, MatchFlow.Api.Services.UploadService>();
+builder.Services.AddScoped<MatchFlow.Api.Services.ICurrentUserService, MatchFlow.Api.Services.CurrentUserService>();
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();

@@ -75,7 +75,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (async () => {
             const token = localStorage.getItem("mf_token");
             const saved = loadUser();
+            // If we have no token but a saved user, clear it to avoid showing logged-in UI while unauthenticated
+            if (!token && saved) {
+                console.log('[AuthProvider] clearing stale saved user because no mf_token present');
+                localStorage.removeItem('mf_user');
+                setUser(null);
+                return;
+            }
+
             if (token && saved && (!saved.id || !saved.teamTag)) {
+                console.log('[AuthProvider] enriching saved user from token');
                 const enriched = await enrichUserFromToken(saved, token);
                 localStorage.setItem("mf_user", JSON.stringify(enriched));
                 setUser(enriched);
@@ -117,10 +126,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
     };
 
-    const value = useMemo(
-        () => ({ user, isAuthenticated: !!user, login, register, logout }),
-        [user]
-    );
+    const value = useMemo(() => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('mf_token') : null;
+        const isAuthenticated = !!token && !!user;
+        return { user, isAuthenticated, login, register, logout } as AuthContextValue;
+    }, [user]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
