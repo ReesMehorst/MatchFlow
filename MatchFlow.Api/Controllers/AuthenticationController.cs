@@ -166,4 +166,47 @@ public class AuthenticationController : ControllerBase
 
         return NoContent();
     }
+
+    [Authorize]
+    [HttpPut("changedata")]
+    public async Task<IActionResult> ChangeData(ChangeUserDataDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null)
+            return Unauthorized();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return NotFound("User not found.");
+
+        user.DisplayName = dto.DisplayName;
+
+        if (user.Email != dto.Email)
+        {
+            var emailResult = await _userManager.SetEmailAsync(user, dto.Email);
+            if (!emailResult.Succeeded)
+                return BadRequest(emailResult.Errors);
+
+            var usernameResult = await _userManager.SetUserNameAsync(user, dto.Email);
+            if (!usernameResult.Succeeded)
+                return BadRequest(usernameResult.Errors);
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.Password))
+        {
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var passwordResult = await _userManager.ResetPasswordAsync(
+                user,
+                token,
+                dto.Password
+            );
+
+            if (!passwordResult.Succeeded)
+                return BadRequest(passwordResult.Errors);
+        }
+
+        await _userManager.UpdateAsync(user);
+
+        return NoContent();
+    }
 }

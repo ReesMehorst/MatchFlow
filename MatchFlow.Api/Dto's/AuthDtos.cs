@@ -24,3 +24,10 @@ public sealed record MeDto(
     string? DisplayName,
     string[] Roles
 );
+
+public sealed record ChangeUserDataDto(
+    string DisplayName,
+    string Email, 
+    string? Password
+);
+    

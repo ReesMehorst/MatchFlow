@@ -6,6 +6,12 @@ export type UserProfile = {
     email: string;
 };
 
+type UpdateProfilePayload = {
+    displayName: string;
+    email: string;
+    password?: string;
+};
+
 export type Team = {
     id: string;
     name: string;
@@ -21,12 +27,9 @@ export const PROFILE_ENDPOINTS = {
 export const getProfile = () =>
     api.get<UserProfile>("/auth/me");
 
-export const updateProfile = (data: {
-    displayName: string;
-    email: string;
-    password?: string;
-}) =>
-    api.put("/auth/me", data);
+export async function updateProfile(payload: UpdateProfilePayload): Promise<void> {
+    await api.put("/auth/changedata", payload);
+}
 
 export const deleteProfile = () =>
     api.del("/auth/{id}");
