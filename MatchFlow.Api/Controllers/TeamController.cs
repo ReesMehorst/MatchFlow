@@ -7,6 +7,7 @@ using MatchFlow.Api.Dtos;
 using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Net.Mime;
+using System.Security.Claims;
 
 namespace MatchFlow.Api.Controllers;
 
@@ -381,5 +382,24 @@ public class TeamController : ControllerBase
         _db.Set<Team>().Remove(t);
         await _db.SaveChangesAsync(cancellationToken);
         return NoContent();
+    }
+
+    [Authorize]
+    [HttpGet("joined")]
+    public async Task<ActionResult<IEnumerable<object>>> GetJoinedTeams()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var teams = await _db.TeamMembers
+            .Where(tm => tm.UserId == userId)
+            .Select(tm => new
+            {
+                id = tm.Team.Id,
+                name = tm.Team.Name
+            })
+            .ToListAsync();
+
+        return Ok(teams);
     }
 }
