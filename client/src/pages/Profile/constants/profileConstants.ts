@@ -19,7 +19,7 @@ export type Team = {
 
 export const PROFILE_ENDPOINTS = {
     me: "/auth/me",
-    update: "/users/me",
+    update: "/auth/changedata",
     delete: "/users/me",
     joinedTeams: "/teams/joined"
 };
@@ -34,5 +34,5 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<void
 export const deleteProfile = () =>
     api.del("/auth/{id}");
 
-export const getJoinedTeams = () =>
-    api.get<Team[]>("/teams/joined");
+export const getMyTeams = () =>
+    api.get<Team[]>("/user/me/teams");
