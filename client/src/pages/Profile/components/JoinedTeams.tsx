@@ -1,12 +1,17 @@
 ﻿import { useEffect, useState } from "react";
 import type { Team } from "../constants/profileConstants";
-import { getJoinedTeams } from "../constants/profileConstants";
+import { getMyTeams } from "../constants/profileConstants";
 
 export function JoinedTeams() {
     const [teams, setTeams] = useState<Team[]>([]);
 
     useEffect(() => {
-        getJoinedTeams().then(setTeams);
+        getMyTeams()
+            .then(setTeams)
+            .catch(err => {
+                console.error("Failed to fetch teams:", err);
+                setTeams([]);
+            });
     }, []);
 
     return (
