@@ -30,4 +30,7 @@ public sealed record ChangeUserDataDto(
     string Email, 
     string? Password
 );
-    
+
+public sealed record DeleteAccountDto(
+    string Password
+);

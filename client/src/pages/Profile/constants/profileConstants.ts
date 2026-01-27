@@ -31,8 +31,20 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<void
     await api.put("/auth/changedata", payload);
 }
 
-export const deleteProfile = () =>
-    api.del("/auth/{id}");
+export async function deleteProfile(password: string) {
+    const res = await fetch("/api/auth/me", {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("mf_token")}`,
+        },
+        body: JSON.stringify({ password }),
+    });
+
+    if (!res.ok) {
+        throw new Error("Delete failed");
+    }
+}
 
 export const getMyTeams = () =>
     api.get<Team[]>("/user/me/teams");
