@@ -15,6 +15,10 @@ type UpdateProfilePayload = {
 export type Team = {
     id: string;
     name: string;
+    tag: string;
+    bio: string;
+    memberCount: number;
+    isMember: boolean;
 };
 
 export const PROFILE_ENDPOINTS = {
