@@ -1,4 +1,4 @@
-﻿import { api } from "../../../services/api";
+﻿import { api, API_URL } from "../../../services/api";
 
 export type UserProfile = {
     id: string;
@@ -32,7 +32,7 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<void
 }
 
 export async function deleteProfile(password: string) {
-    const res = await fetch("/api/auth/me", {
+    const res = await fetch(`${API_URL}/auth/me`, {
         method: "DELETE",
         headers: {
             "Content-Type": "application/json",

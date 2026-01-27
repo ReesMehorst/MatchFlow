@@ -191,6 +191,7 @@ public class AuthenticationController : ControllerBase
     [HttpDelete("me")]
     public async Task<IActionResult> DeleteMe([FromBody] DeleteAccountDto dto)
     {
+        Console.WriteLine($"DeleteMe called {dto.Password}");
         if (string.IsNullOrWhiteSpace(dto.Password))
             return BadRequest("Password is required");
 

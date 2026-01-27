@@ -16,7 +16,7 @@ export function DangerZone() {
         try {
             setLoading(true);
             setError(null);
-
+            console.log(password);
             await deleteProfile(password);
 
             localStorage.removeItem("mf_token");
