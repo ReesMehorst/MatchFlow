@@ -1,7 +1,7 @@
 ﻿using MatchFlow.Infrastructure.DBContext;
 using Microsoft.EntityFrameworkCore;
 
-public static class TeamTestDbFactory
+public static class TestDbFactory
 {
     public static MatchFlowDbContext Create()
     {

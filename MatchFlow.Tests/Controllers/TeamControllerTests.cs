@@ -57,7 +57,7 @@ public class TeamControllerTests
     [Fact]
     public async Task GetAll_ReturnsEmptyPagedResult_WhenNoTeams()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var controller = CreateController(db);
 
         var result = await controller.GetAll(null, null, null, null, null);
@@ -71,7 +71,7 @@ public class TeamControllerTests
     [Fact]
     public async Task Get_ReturnsNotFound_WhenMissing()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var controller = CreateController(db);
 
         var result = await controller.Get(Guid.NewGuid());
@@ -84,7 +84,7 @@ public class TeamControllerTests
     [Fact]
     public async Task Create_ReturnsBadRequest_WhenNameMissing()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var controller = CreateController(db, "user1");
 
         var dto = new CreateTeamDto { Tag = "ABC" };
@@ -97,7 +97,7 @@ public class TeamControllerTests
     [Fact]
     public async Task Create_CreatesTeam_AndAddsOwnerAsMember()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var controller = CreateController(db, "owner1");
 
         var dto = new CreateTeamDto
@@ -119,7 +119,7 @@ public class TeamControllerTests
     [Fact]
     public async Task Update_ReturnsNotFound_WhenMissing()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var controller = CreateController(db, "u1");
 
         var dto = new UpdateTeamDto { Name = "X", Tag = "X" };
@@ -134,7 +134,7 @@ public class TeamControllerTests
     [Fact]
     public async Task JoinTeam_ReturnsUnauthorized_WhenNoUser()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var team = new Team { Id = Guid.NewGuid(), Name = "T", Tag = "T", OwnerUserId = "o" };
         db.Teams.Add(team);
         await db.SaveChangesAsync();
@@ -149,7 +149,7 @@ public class TeamControllerTests
     [Fact]
     public async Task JoinTeam_AddsMember_WhenValid()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var team = new Team { Id = Guid.NewGuid(), Name = "T", Tag = "T", OwnerUserId = "o" };
         db.Teams.Add(team);
         await db.SaveChangesAsync();
@@ -167,7 +167,7 @@ public class TeamControllerTests
     [Fact]
     public async Task Delete_ReturnsForbid_WhenNotOwnerOrAdmin()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var team = new Team { Id = Guid.NewGuid(), Name = "T", Tag = "T", OwnerUserId = "owner" };
         db.Teams.Add(team);
         await db.SaveChangesAsync();
@@ -182,7 +182,7 @@ public class TeamControllerTests
     [Fact]
     public async Task Delete_RemovesTeam_WhenOwner()
     {
-        var db = TeamTestDbFactory.Create();
+        var db = TestDbFactory.Create();
         var team = new Team { Id = Guid.NewGuid(), Name = "T", Tag = "T", OwnerUserId = "owner" };
         db.Teams.Add(team);
         await db.SaveChangesAsync();
