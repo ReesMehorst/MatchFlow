@@ -3,10 +3,11 @@ import type { TeamSummary } from "../constants/teamsConstants";
 
 type Props = {
     team: TeamSummary;
-    onJoin: (teamId: string) => Promise<void> | void;
+    onJoin?: (teamId: string) => Promise<void> | void;
+    readonly?: boolean;
 };
 
-export default function TeamCard({ team, onJoin }: Props) {
+export default function TeamCard({ team, onJoin, readonly }: Props) {
     return (
         <article className="teamCard card">
             <div className="teamTop">
@@ -23,16 +24,20 @@ export default function TeamCard({ team, onJoin }: Props) {
             {team.bio && <p className="teamDesc">{team.bio}</p>}
 
             <div className="teamActions">
-                <Link className="btn btnGhost" to={`/teams/${team.id}`}>View</Link>
+                <Link className="btn btnGhost" to={`/teams/${team.id}`}>
+                    View
+                </Link>
 
-                <button
-                    className="btn btnPrimary"
-                    type="button"
-                    onClick={() => onJoin(team.id)}
-                    disabled={team.isMember}
-                >
-                    {team.isMember ? "Joined" : "Join"}
-                </button>
+                {!readonly && onJoin && (
+                    <button
+                        className="btn btnPrimary"
+                        type="button"
+                        onClick={() => onJoin(team.id)}
+                        disabled={team.isMember}
+                    >
+                        {team.isMember ? "Joined" : "Join"}
+                    </button>
+                )}
             </div>
         </article>
     );

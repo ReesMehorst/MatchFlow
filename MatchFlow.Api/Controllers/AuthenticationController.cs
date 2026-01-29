@@ -145,29 +145,6 @@ public class AuthenticationController : ControllerBase
     }
 
     [Authorize]
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(string id)
-    {
-        // Find the target user
-        var user = await _userManager.FindByIdAsync(id);
-        if (user == null) return NotFound();
-
-        // Caller must be either the user themselves or an admin
-        var callerId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin");
-        if (!isAdmin && !string.Equals(callerId, id, StringComparison.OrdinalIgnoreCase))
-            return Forbid();
-
-        var result = await _userManager.DeleteAsync(user);
-        if (!result.Succeeded)
-        {
-            return BadRequest(result.Errors.Select(e => e.Description));
-        }
-
-        return NoContent();
-    }
-
-    [Authorize]
     [HttpPut("changedata")]
     public async Task<IActionResult> ChangeData(ChangeUserDataDto dto)
     {
@@ -206,6 +183,35 @@ public class AuthenticationController : ControllerBase
         }
 
         await _userManager.UpdateAsync(user);
+
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMe([FromBody] DeleteAccountDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Password))
+            return BadRequest("Password is required");
+
+        var userId =
+            User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+            return Unauthorized();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return Unauthorized();
+
+        var valid = await _userManager.CheckPasswordAsync(user, dto.Password);
+        if (!valid)
+            return BadRequest("Invalid password");
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
 
         return NoContent();
     }

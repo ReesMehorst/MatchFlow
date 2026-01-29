@@ -1,6 +1,6 @@
 // Allow an explicit runtime override via globalThis.__MF_API_URL (useful during dev)
 // Fallback to the local API address used by the ASP.NET project.
-let API_URL = (globalThis as any).__MF_API_URL as string | undefined;
+export let API_URL = (globalThis as any).__MF_API_URL as string | undefined;
 API_URL = API_URL ?? "https://localhost:5001/api";
 if (!API_URL.endsWith("/api")) {
     // allow both forms: https://host and https://host/api -> normalize to include /api

@@ -1,4 +1,4 @@
-﻿import { api } from "../../../services/api";
+﻿import { api, API_URL } from "../../../services/api";
 
 export type UserProfile = {
     id: string;
@@ -15,6 +15,10 @@ type UpdateProfilePayload = {
 export type Team = {
     id: string;
     name: string;
+    tag: string;
+    bio: string;
+    memberCount: number;
+    isMember: boolean;
 };
 
 export const PROFILE_ENDPOINTS = {
@@ -31,8 +35,20 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<void
     await api.put("/auth/changedata", payload);
 }
 
-export const deleteProfile = () =>
-    api.del("/auth/{id}");
+export async function deleteProfile(password: string) {
+    const res = await fetch(`${API_URL}/auth/me`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("mf_token")}`,
+        },
+        body: JSON.stringify({ password }),
+    });
+
+    if (!res.ok) {
+        throw new Error("Delete failed");
+    }
+}
 
 export const getMyTeams = () =>
     api.get<Team[]>("/user/me/teams");
