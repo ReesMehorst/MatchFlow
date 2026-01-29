@@ -183,20 +183,3 @@ select.input {
         -moz-appearance: textfield;
         appearance: textfield;
     }
-
-/* ======== Alerts ======== */
-.alert {
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
-    .alert.success {
-        background: #e6f7ed;
-        color: #1b7f45;
-    }
-
-    .alert.error {
-        background: #fdecea;
-        color: #b42318;
-    }
